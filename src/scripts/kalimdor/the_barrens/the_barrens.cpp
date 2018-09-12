@@ -32,6 +32,12 @@ EndContentData */
 
 #include "scriptPCH.h"
 
+struct sSummonInformation
+{
+    uint32 uiEntry;
+    float fX, fY, fZ, fO;
+};
+
 /*######
 ## npc_beaten_corpse
 ######*/
@@ -161,8 +167,17 @@ enum
     SAY_GIL_SWEET               = -1000379,
     SAY_GIL_FREED               = -1000380,
 
+    NPC_MARINE                  = 3385,
+
     QUEST_FREE_FROM_HOLD        = 898,
     AREA_MERCHANT_COAST         = 391
+};
+
+static const sSummonInformation asSummonMarinePos[3] =
+{
+    {NPC_MARINE, -1936.261f, -3688.818f, 9.281f, 1.41f},
+    {NPC_MARINE, -1933.431f, -3676.732f, 10.343f, 4.43f},
+    {NPC_MARINE, -1942.902f, -3682.220f, 10.687f, 6.09f}
 };
 
 struct npc_giltharesAI : public npc_escortAI
@@ -188,6 +203,18 @@ struct npc_giltharesAI : public npc_escortAI
                 break;
             case 17:
                 DoScriptText(SAY_GIL_PROCEED, m_creature, pPlayer);
+                //summon three of Theramore Marine (3385)
+                for(int i = 0; i < 3; i++) {
+                    m_creature->SummonCreature(
+                        asSummonMarinePos[i].uiEntry, 
+                        asSummonMarinePos[i].fX, 
+                        asSummonMarinePos[i].fY, 
+                        asSummonMarinePos[i].fZ, 
+                        asSummonMarinePos[i].fO, 
+                        TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 
+                        120000
+                    );
+                }
                 break;
             case 18:
                 DoScriptText(SAY_GIL_FREEBOOTERS, m_creature, pPlayer);
@@ -208,7 +235,7 @@ struct npc_giltharesAI : public npc_escortAI
     void Aggro(Unit* pWho)
     {
         //not always use
-        if (urand(0, 3))
+        if (urand(0, 2))
             return;
 
         //only aggro text if not player and only in this area
@@ -763,11 +790,6 @@ enum
 
     QUEST_COUNTERATTACK     = 4021,
     GO_KOLKAR_BANNER        = 164690
-};
-struct sSummonInformation
-{
-    uint32 uiEntry;
-    float fX, fY, fZ, fO;
 };
 
 static const sSummonInformation asSummonKolkarPositions[12] =
