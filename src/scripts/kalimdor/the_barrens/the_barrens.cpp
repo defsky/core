@@ -203,7 +203,8 @@ struct npc_giltharesAI : public npc_escortAI
                 break;
             case 17:
                 DoScriptText(SAY_GIL_PROCEED, m_creature, pPlayer);
-                //summon three of Theramore Marine (3385)
+
+                //summon three Theramore Marines (3385)
                 for(int i = 0; i < 3; i++) {
                     m_creature->SummonCreature(
                         asSummonMarinePos[i].uiEntry, 
