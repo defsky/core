@@ -1294,7 +1294,10 @@ struct npc_warlord_kromzarAI : public ScriptedAI
 
     void JustDied(Unit* pKiller)
     {
-        m_creature->CastSpell(m_creature, 13965, true); //SPELL_BANNER
+        //summon 5 banners
+        for(int i=0; i<5; i++) {
+            m_creature->CastSpell(m_creature, 13965, true); //SPELL_BANNER
+        }
     }
     void UpdateAI(const uint32 uiDiff)
     {
