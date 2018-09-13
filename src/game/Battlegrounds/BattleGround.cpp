@@ -87,9 +87,11 @@ class BattleGroundYellBuilder
 {
 public:
     BattleGroundYellBuilder(uint32 language, int32 textId, Creature const* source, va_list* args = nullptr)
-        : i_language(language), i_textId(textId), i_source(source), i_args(args) {}
+        : i_language(language), i_textId(textId), i_source(source), i_args(args), i_loc_idx(0) {}
     void operator()(WorldPacket& data, int32 loc_idx)
     {
+        i_loc_idx = loc_idx;
+
         char const* text = sObjectMgr.GetMangosString(i_textId, loc_idx);
 
         if (i_args)
@@ -114,8 +116,13 @@ private:
         data << uint8(CHAT_MSG_MONSTER_YELL);
         data << uint32(i_language);
         data << ObjectGuid(i_source->GetObjectGuid());
-        data << uint32(strlen(i_source->GetName()) + 1);
-        data << i_source->GetName();
+
+        //modify to get zhCN locale name
+        //data << uint32(strlen(i_source->GetName()) + 1);
+        //data << i_source->GetName();
+        data << uint32(strlen(i_source->GetNameForLocaleIdx(i_loc_idx)) + 1);
+        data << i_source->GetNameForLocaleIdx(i_loc_idx);
+
         data << ObjectGuid();                       // Unit Target - isn't important for bgs
         data << uint32(strlen(text) + 1);
         data << text;
@@ -124,6 +131,7 @@ private:
 
     uint32 i_language;
     int32 i_textId;
+    int32 i_loc_idx;
     Creature const* i_source;
     va_list* i_args;
 };
@@ -165,9 +173,11 @@ class BattleGround2YellBuilder
 {
 public:
     BattleGround2YellBuilder(uint32 language, int32 textId, Creature const* source, int32 arg1, int32 arg2)
-        : i_language(language), i_textId(textId), i_source(source), i_arg1(arg1), i_arg2(arg2) {}
+        : i_language(language), i_textId(textId), i_source(source), i_arg1(arg1), i_arg2(arg2), i_loc_idx(0) {}
     void operator()(WorldPacket& data, int32 loc_idx)
     {
+        i_loc_idx = loc_idx;
+
         char const* text = sObjectMgr.GetMangosString(i_textId, loc_idx);
         char const* arg1str = i_arg1 ? sObjectMgr.GetMangosString(i_arg1, loc_idx) : "";
         char const* arg2str = i_arg2 ? sObjectMgr.GetMangosString(i_arg2, loc_idx) : "";
@@ -178,8 +188,12 @@ public:
         data << uint8(CHAT_MSG_MONSTER_YELL);
         data << uint32(i_language);
         data << ObjectGuid(i_source->GetObjectGuid());
-        data << uint32(strlen(i_source->GetName()) + 1);
-        data << i_source->GetName();
+        
+        //modify to get zhCN locale name
+        //data << uint32(strlen(i_source->GetName()) + 1);
+        //data << i_source->GetName();
+        data << uint32(strlen(i_source->GetNameForLocaleIdx(i_loc_idx)) + 1);
+        data << i_source->GetNameForLocaleIdx(i_loc_idx);
         data << ObjectGuid();                       // Unit Target - isn't important for bgs
         data << uint32(strlen(str) + 1);
         data << str;
@@ -189,6 +203,7 @@ private:
 
     uint32 i_language;
     int32 i_textId;
+    int32 i_loc_idx;
     Creature const* i_source;
     int32 i_arg1;
     int32 i_arg2;
