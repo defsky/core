@@ -429,13 +429,13 @@ void BattleGroundAB::EventPlayerClickedOnFlag(Player *source, GameObject* target
     }
 
     // If node is occupied again, send "X has taken the Y" msg.
-    if (m_Nodes[node] >= BG_AB_NODE_TYPE_OCCUPIED)
-    {
-        if (teamIndex == BG_TEAM_ALLIANCE)
-            SendMessage2ToAll(LANG_BG_AB_NODE_TAKEN, CHAT_MSG_BG_SYSTEM_ALLIANCE, nullptr, LANG_BG_ALLY, _GetNodeNameId(node));
-        else
-            SendMessage2ToAll(LANG_BG_AB_NODE_TAKEN, CHAT_MSG_BG_SYSTEM_HORDE, nullptr, LANG_BG_HORDE, _GetNodeNameId(node));
-    }
+    //if (m_Nodes[node] >= BG_AB_NODE_TYPE_OCCUPIED)
+    //{
+    //    if (teamIndex == BG_TEAM_ALLIANCE)
+    //        SendMessage2ToAll(LANG_BG_AB_NODE_TAKEN, CHAT_MSG_BG_SYSTEM_ALLIANCE, nullptr, LANG_BG_ALLY, _GetNodeNameId(node));
+    //    else
+    //        SendMessage2ToAll(LANG_BG_AB_NODE_TAKEN, CHAT_MSG_BG_SYSTEM_HORDE, nullptr, LANG_BG_HORDE, _GetNodeNameId(node));
+    //}
     PlaySoundToAll(sound);
 }
 
