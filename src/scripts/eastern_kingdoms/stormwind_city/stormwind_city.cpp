@@ -1315,7 +1315,8 @@ bool GossipHello_npc_bolvar_fordragon(Player* pPlayer, Creature* pCreature)
     if (pCreature->isQuestGiver())
         pPlayer->PrepareQuestMenu(pCreature->GetGUID());
 
-    pPlayer->SEND_GOSSIP_MENU(865, pCreature->GetGUID());
+    //pPlayer->SEND_GOSSIP_MENU(865, pCreature->GetGUID());
+    pPlayer->SEND_GOSSIP_MENU(60001, pCreature->GetGUID());
 
     return true;
 }
