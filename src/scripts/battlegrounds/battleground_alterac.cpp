@@ -998,10 +998,10 @@ CreatureAI* GetAI_npc_Galvangar(Creature* m_creature)
 }
 
 /*######
-## npc_WarMaster
+## npc_WarMaster_Horde
 ######*/
 
-// #define NPC_WARMASTER   14762 to 14769 (ally)
+// #define NPC_WARMASTER_HORDE   14770 to 14777
 
 enum
 {
@@ -1012,9 +1012,9 @@ enum
     SPELL_WHIRLWIND_WM = 13736
 };
 
-struct npc_WarMasterAI : public ScriptedAI
+struct npc_WarMaster_HordeAI : public ScriptedAI
 {
-    npc_WarMasterAI(Creature* pCreature) : ScriptedAI(pCreature), m_isKilled(false)
+    npc_WarMaster_HordeAI(Creature* pCreature) : ScriptedAI(pCreature), m_isKilled(false)
     {
         // m_pInstance = (ScriptedInstance*)m_creature->GetInstanceData();
         Reset();
@@ -1042,6 +1042,11 @@ struct npc_WarMasterAI : public ScriptedAI
         m_creature->clearUnitState(UNIT_STAT_ROOT);
     }
 
+    void EnterEvadeMode()
+    {
+        ScriptedAI::EnterEvadeMode();
+    }
+
     void MoveInLineOfSight(Unit* pWho)
     {
         if (m_creature->getVictim())
@@ -1067,6 +1072,20 @@ struct npc_WarMasterAI : public ScriptedAI
          *  The linked objective is tagged and then defended
          *  The war master respawns
          */
+
+        //prevent war masters run out of general's room
+        if (m_creature->GetMapId() == 30)
+        {
+            if (m_creature->GetDistance2d(POSITION_DKT_CENTER_X, POSITION_DKT_CENTER_Y) > 33.0f)
+            {
+                m_creature->CombatStop();
+                m_creature->SetHealth(m_creature->GetMaxHealth());
+                m_creature->clearUnitState(UNIT_STAT_ROOT);
+                EnterEvadeMode();
+                return;
+            }
+        }
+
         if (m_isKilled)
         {
             m_creature->DeleteLater();
@@ -1186,9 +1205,221 @@ struct npc_WarMasterAI : public ScriptedAI
     }
 };
 
-CreatureAI* GetAI_npc_WarMaster(Creature* m_creature)
+CreatureAI* GetAI_npc_WarMaster_Horde(Creature* m_creature)
 {
-    return new npc_WarMasterAI(m_creature);
+    return new npc_WarMaster_HordeAI(m_creature);
+}
+/*######
+## npc_WarMaster_Ally
+######*/
+
+// #define NPC_WARMASTER_ALLY   14762 to 14769
+
+//enum
+//{
+//    SPELL_CHARGE       = 22911,
+//    SPELL_CLEAVE_WM    = 20684,
+//    SPELL_DEMORALSHOUT = 23511,
+//    SPELL_ENRAGE_WM    = 8599,
+//    SPELL_WHIRLWIND_WM = 13736
+//};
+
+struct npc_WarMaster_AllyAI : public ScriptedAI
+{
+    npc_WarMaster_AllyAI(Creature* pCreature) : ScriptedAI(pCreature), m_isKilled(false)
+    {
+        // m_pInstance = (ScriptedInstance*)m_creature->GetInstanceData();
+        Reset();
+    }
+
+    // ScriptedInstance* m_pInstance; // remplacer par BG?
+    uint32 m_uiGlobalCooldown;
+    uint32 m_uiCharge_Timer;
+    uint32 m_uiCleave_Timer;
+    uint32 m_uiShout_Timer;
+    uint32 m_uiWhirlwind_Timer;
+    uint32 m_uiIsInWhirlwind_Timer;
+    uint32 m_uiEnrage_Timer;
+    bool   m_isKilled;
+
+    void Reset()
+    {
+        m_uiGlobalCooldown  = 0;
+        m_uiCharge_Timer    = 0;
+        m_uiCleave_Timer    = 8000;
+        m_uiShout_Timer     = 4000;
+        m_uiWhirlwind_Timer = 12000;
+        m_uiEnrage_Timer    = 0;
+        m_uiIsInWhirlwind_Timer = 0;
+        m_creature->clearUnitState(UNIT_STAT_ROOT);
+    }
+
+    void EnterEvadeMode()
+    {
+        ScriptedAI::EnterEvadeMode();
+    }
+
+    void MoveInLineOfSight(Unit* pWho)
+    {
+        if (m_creature->getVictim())
+            return;
+
+        if (pWho->GetDistance(m_creature) < 22.0f && m_creature->IsValidAttackTarget(pWho))
+        {
+            AttackStart(pWho);
+            if (DoCastSpellIfCan(pWho, SPELL_CHARGE) == CAST_OK)
+                m_uiCharge_Timer = 12000;
+        }
+    }
+
+    void JustDied(Unit* killer)
+    {
+        m_isKilled = true;
+    }
+
+    void UpdateAI(const uint32 diff)
+    {
+        /* Prevents the following bug:
+         *  The war master is killed
+         *  The linked objective is tagged and then defended
+         *  The war master respawns
+         */
+
+        //prevent war masters run out of general's room
+        if (m_creature->GetMapId() == 30)
+        {
+            if (m_creature->GetDistance2d(POSITION_VANNDAR_CENTER_X, POSITION_VANNDAR_CENTER_Y) > 35.0f)
+            {
+                m_creature->CombatStop();
+                m_creature->SetHealth(m_creature->GetMaxHealth());
+                m_creature->clearUnitState(UNIT_STAT_ROOT);
+                EnterEvadeMode();
+                return;
+            }
+        }
+
+        if (m_isKilled)
+        {
+            m_creature->DeleteLater();
+            return;
+        }
+        if (m_uiIsInWhirlwind_Timer < diff)
+            m_uiIsInWhirlwind_Timer = 0;
+        else
+            m_uiIsInWhirlwind_Timer -= diff;
+
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+            return;
+
+        // GlobalCD non ecoule.
+        if (m_uiGlobalCooldown > diff)
+            m_uiGlobalCooldown -= diff;
+        else
+        {
+            if (m_creature->IsNonMeleeSpellCasted(false))
+                m_uiGlobalCooldown = 1;
+            else
+                m_uiGlobalCooldown = 0;
+        }
+
+        if (!m_uiIsInWhirlwind_Timer)
+            m_creature->clearUnitState(UNIT_STAT_ROOT);
+        else
+            m_creature->addUnitState(UNIT_STAT_ROOT);
+
+        // SPELL_WHIRLWIND_WM
+        if (m_uiWhirlwind_Timer < diff)
+        {
+            if (!m_uiGlobalCooldown)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_WHIRLWIND_WM) == CAST_OK)
+                {
+                    if (m_uiIsInWhirlwind_Timer < diff)
+                    {
+                        m_uiIsInWhirlwind_Timer = 4000;
+                        m_uiWhirlwind_Timer = 2000;
+                    }
+                    else
+                        m_uiWhirlwind_Timer = urand(11000, 13000);
+                    m_uiGlobalCooldown = 2000;
+                }
+            }
+        }
+        else
+            m_uiWhirlwind_Timer -= diff;
+
+        // SPELL_ENRAGE_WM
+        if (m_uiEnrage_Timer < diff)
+        {
+            if (!m_uiGlobalCooldown && (m_creature->GetHealthPercent() <= 30.0f))
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_ENRAGE_WM) == CAST_OK)
+                {
+                    m_uiEnrage_Timer = 120000;
+                    m_uiGlobalCooldown = 1000;
+                }
+            }
+        }
+        else
+            m_uiEnrage_Timer -= diff;
+
+        // CHARGE
+        if (m_uiCharge_Timer < diff)
+        {
+            if (!m_uiGlobalCooldown)
+            {
+                if (Unit* pTarget = m_creature->GetVictimInRange(8.0f, 25.0f))
+                {
+                    if (DoCastSpellIfCan(pTarget, SPELL_CHARGE) == CAST_OK)
+                    {
+                        m_uiCharge_Timer = urand(12000, 18000);
+                        m_uiGlobalCooldown = 250;
+                    }
+                }
+                else
+                    m_uiCharge_Timer = urand(5000, 10000);
+            }
+        }
+        else
+            m_uiCharge_Timer -= diff;
+
+        // SPELL_CLEAVE_WM
+        if (m_uiCleave_Timer < diff)
+        {
+            if (!m_uiGlobalCooldown)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_CLEAVE_WM) == CAST_OK)
+                {
+                    m_uiCleave_Timer = urand(8000, 10000);
+                    m_uiGlobalCooldown = 1000;
+                }
+            }
+        }
+        else
+            m_uiCleave_Timer -= diff;
+
+        // SPELL_DEMORALSHOUT
+        if (m_uiShout_Timer < diff)
+        {
+            if (!m_uiGlobalCooldown)
+            {
+                if (DoCastSpellIfCan(m_creature, SPELL_DEMORALSHOUT) == CAST_OK)
+                {
+                    m_uiShout_Timer = urand(14000, 20000);
+                    m_uiGlobalCooldown = 1000;
+                }
+            }
+        }
+        else
+            m_uiShout_Timer -= diff;
+
+        DoMeleeAttackIfReady();
+    }
+};
+
+CreatureAI* GetAI_npc_WarMaster_Ally(Creature* m_creature)
+{
+    return new npc_WarMaster_AllyAI(m_creature);
 }
 
 /*######
@@ -5705,8 +5936,13 @@ void AddSC_bg_alterac()
     newscript->RegisterSelf();
 
     newscript = new Script;
-    newscript->Name = "npc_WarMaster";
-    newscript->GetAI = &GetAI_npc_WarMaster;
+    newscript->Name = "npc_WarMaster_Horde";
+    newscript->GetAI = &GetAI_npc_WarMaster_Horde;
+    newscript->RegisterSelf();
+
+    newscript = new Script;
+    newscript->Name = "npc_WarMaster_Ally";
+    newscript->GetAI = &GetAI_npc_WarMaster_Ally;
     newscript->RegisterSelf();
 
     newscript = new Script;
