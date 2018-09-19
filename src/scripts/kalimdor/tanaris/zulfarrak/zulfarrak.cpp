@@ -47,6 +47,7 @@ enum blySays
     SAY_1       = -1209002, // What? How dare you say that to me?!?
     SAY_2       = -1209003, // After all we've been through? Well, I didn't like you anyway!!
     SAY_WEEGLI  = -1209004, // I'm out of here!
+    GOSSIP_BLY  = -1209005, // That's it! I'm tired of helping you out.  It's time we settled things on the battlefield!
 };
 
 enum blySpells
@@ -54,9 +55,6 @@ enum blySpells
     SPELL_SHIELD_BASH          = 11972,
     SPELL_REVENGE              = 12170
 };
-
-#define GOSSIP_BLY                  "That's it! I'm tired of helping you out.  It's time we settled things on the battlefield!"
-
 
 struct npc_sergeant_blyAI : public ScriptedAI
 {
@@ -108,11 +106,14 @@ struct npc_sergeant_blyAI : public ScriptedAI
                         m_creature->setFaction(FACTION_HOSTILE);
                         if (Player* pTarget = ((Player*)Unit::GetUnit(*m_creature, PlayerGUID)))
                             AttackStart(pTarget);
-                        //weegli doesn't fight - he goes & blows up the door
+                        //weegli doesn't fight - he goes & blows up the door if he is not disappear
                         if (Creature* weegli = pInstance->instance->GetCreature(pInstance->GetData64(ENTRY_WEEGLI)))
                         {
-                            weegli->AI()->DoAction();
-                            DoScriptText(SAY_WEEGLI, weegli);
+                            if (!weegli->IsDespawned())
+                            {
+                                weegli->AI()->DoAction();
+                                DoScriptText(SAY_WEEGLI, weegli);
+                            }
                         }
 
                         switchFactionIfAlive(pInstance, ENTRY_RAVEN);
@@ -268,11 +269,9 @@ enum weegliSays
 {
     SAY_WEEGLI_OHNO      = -1209000,
     SAY_WEEGLI_OK_I_GO   = -1209001,
-    SAY_CHIEF_UKORZ_DOOR = -1209004
+    SAY_CHIEF_UKORZ_DOOR = -1209004,
+    GOSSIP_WEEGLI        = -1209006    // Will you blow up that door now?
 };
-
-#define GOSSIP_WEEGLI               "Will you blow up that door now?"
-
 
 struct npc_weegli_blastfuseAI : public ScriptedAI
 {

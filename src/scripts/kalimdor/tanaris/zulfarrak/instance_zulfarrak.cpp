@@ -316,11 +316,11 @@ public:
                 if (IsWaveAllDead()) // move NPCS to their final positions
                 {
                     SetData(EVENT_PYRAMID, PYRAMID_KILLED_ALL_TROLLS);
-                    MoveNPCIfAlive(ENTRY_BLY, 1883.82f, 1200.83f, 8.87f, 1.32f);
-                    MoveNPCIfAlive(ENTRY_MURTA, 1891.83f, 1201.45f, 8.87f, 1.32f);
-                    MoveNPCIfAlive(ENTRY_ORO, 1894.50f, 1204.40f, 8.87f, 1.32f);
-                    MoveNPCIfAlive(ENTRY_RAVEN, 1874.11f, 1206.17f, 8.87f, 1.32f);
-                    MoveNPCIfAlive(ENTRY_WEEGLI, 1877.52f, 1199.63f, 8.87f, 1.32f);
+                    MoveNPCIfAlive(ENTRY_BLY, 1883.82f, 1200.83f, 8.87f, 1.54f);
+                    MoveNPCIfAlive(ENTRY_MURTA, 1891.83f, 1201.45f, 8.87f, 1.54f);
+                    MoveNPCIfAlive(ENTRY_ORO, 1894.50f, 1204.40f, 8.87f, 2.55f);
+                    MoveNPCIfAlive(ENTRY_RAVEN, 1874.11f, 1206.17f, 8.87f, 0.66f);
+                    MoveNPCIfAlive(ENTRY_WEEGLI, 1877.52f, 1199.63f, 8.87f, 1.54f);
                 }
                 break;
         };
@@ -336,7 +336,7 @@ public:
             {
                 npc->GetMotionMaster()->MovePoint(1, x, y, z, MOVE_PATHFINDING | MOVE_WALK_MODE);
                 npc->SetCombatStartPosition(x, y, z);
-                npc->SetHomePosition(x, y, z, npc->GetOrientation());
+                npc->SetHomePosition(x, y, z, o);
             }
         }
     }
