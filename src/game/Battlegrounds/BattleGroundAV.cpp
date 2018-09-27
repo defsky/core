@@ -316,7 +316,7 @@ void BattleGroundAV::HandleKillUnit(Creature *creature, Player *killer)
             CastSpellOnTeam(BG_AV_BOSS_KILL_QUEST_SPELL, ALLIANCE); // this is a spell which finishes a quest where a player has to kill the boss
             RewardReputationToTeam(BG_AV_FACTION_A, m_RepBoss, ALLIANCE);
             RewardHonorToTeam(uint32(GetBonusHonorFromKill(BG_AV_KILL_BOSS) * GetHonorModifier()), ALLIANCE);
-            SendYellToAll(LANG_BG_AV_H_GENERAL_DEAD, LANG_UNIVERSAL, GetSingleCreatureGuid(BG_AV_HERALD, 0));
+            SendYellToAll(LANG_BG_AV_H_GENERAL_DEAD, LANG_UNIVERSAL, GetSingleCreatureGuid(BG_AV_HERALD, 1));
             EndBattleGround(ALLIANCE);
             break;
         case BG_AV_CAPTAIN_A:
