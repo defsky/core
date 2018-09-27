@@ -281,6 +281,9 @@ int Master::Run()
         return 1;
     }
 
+    //Set Realm to Offline, if crash happens, Only used once.
+    LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'",REALM_FLAG_OFFLINE,realmID);
+
     ///- Initialize the World
     sWorld.SetInitialWorldSettings();
 
@@ -439,7 +442,7 @@ int Master::Run()
     }
 
     ///- Set server offline in realmlist
-    //LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'", REALM_FLAG_OFFLINE, realmID);
+    LoginDatabase.DirectPExecute("UPDATE realmlist SET realmflags = realmflags | %u WHERE id = '%u'", REALM_FLAG_OFFLINE, realmID);
 
     ///- Remove signal handling before leaving
     _UnhookSignals();
