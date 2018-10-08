@@ -189,6 +189,14 @@ struct MangosStringLocale
     uint32 Emote;
 };
 
+struct PetNameLocale
+{
+    PetNameLocale() : half(0) {}
+
+    std::vector<std::string> Content;                       // 0 -> default, i -> i-1 locale index
+    bool half;
+};
+
 struct QuestGreetingLocale
 {
     QuestGreetingLocale() : Emote(0), EmoteDelay(0) { }
@@ -1400,7 +1408,8 @@ class ObjectMgr
         typedef std::map<uint32,int32> FishingBaseSkillMap; // [areaId][base skill level]
         FishingBaseSkillMap mFishingBaseForArea;
 
-        typedef std::map<uint32,std::vector<std::string> > HalfNameMap;
+        //typedef std::map<uint32,std::vector<std::string> > HalfNameMap;
+        typedef std::map<uint32,std::vector<PetNameLocale> > HalfNameMap;
         HalfNameMap PetHalfName0;
         HalfNameMap PetHalfName1;
 
