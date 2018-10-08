@@ -6309,7 +6309,7 @@ uint32 ObjectMgr::GetXPForLevel(uint32 level) const
 void ObjectMgr::LoadPetNames()
 {
     uint32 count = 0;
-    QueryResult *result = WorldDatabase.Query("SELECT word,entry,half FROM pet_name_generation");
+    QueryResult *result = WorldDatabase.Query("SELECT entry,half,word,word_loc1,word_loc2,word_loc3,word_loc4,word_loc5,word_loc6,word_loc7,word_loc8 FROM pet_name_generation");
 
     if (!result)
     {
@@ -6322,29 +6322,107 @@ void ObjectMgr::LoadPetNames()
         return;
     }
 
+    //cleanup map for reload
+    //PetHalfName0.clear();
+    //PetHalfName1.clear();
+    for (HalfNameMap::iterator itr = PetHalfName0.begin();itr != PetHalfName0.end();itr++)
+    {
+        PetHalfName0.erase(itr);
+    }
+
+    for (HalfNameMap::iterator itr = PetHalfName1.begin();itr != PetHalfName1.end();itr++)
+    {
+        PetHalfName1.erase(itr);
+    }
+
     BarGoLink bar(result->GetRowCount());
 
     do
     {
+        Field *fields = result->Fetch();
         bar.step();
 
-        Field *fields = result->Fetch();
-        std::string word = fields[0].GetString();
-        uint32 entry     = fields[1].GetUInt32();
-        bool   half      = fields[2].GetBool();
-        if (half)
-            PetHalfName1[entry].push_back(word);
+        uint32 entry     = fields[0].GetUInt32();
+
+        PetNameLocale data;
+        data.half   = fields[1].GetBool();
+
+        data.Content.resize(1);
+        data.Content[0] = fields[2].GetCppString();
+
+        for (int i = 1; i< MAX_LOCALE; i++)
+        {
+            std::string word = fields[i + 2].GetCppString();
+
+            data.Content.resize(i + 1);
+            data.Content[i] = word;
+
+            //if (!word.empty())
+            //{
+            //    int idx = GetOrNewIndexForLocale(LocaleConstant(i));
+            //    if (idx >= 0)
+            //    {
+            //        if ((int32)data.Content.size() <= idx +1)
+            //            data.Content.resize(idx + 2);
+
+            //        data.Content[idx + 1] = word;
+            //        sLog.outString("->i=%u,idx=%u, data.Content[%u] = %s",i,idx,idx + 1,word);
+            //    }
+            //}
+        }
+
+        if (data.half)
+            PetHalfName1[entry].push_back(data);
         else
-            PetHalfName0[entry].push_back(word);
+            PetHalfName0[entry].push_back(data);
         ++count;
     }
     while (result->NextRow());
     delete result;
 
     sLog.outString();
-    sLog.outString(">> Loaded %u pet name parts", count);
+    sLog.outString(">> Loaded %u pet name locale parts", count);
 }
 
+// void ObjectMgr::LoadPetNames()
+// {
+//     uint32 count = 0;
+//     QueryResult *result = WorldDatabase.Query("SELECT word,entry,half FROM pet_name_generation");
+// 
+//     if (!result)
+//     {
+//         BarGoLink bar(1);
+// 
+//         bar.step();
+// 
+//         sLog.outString();
+//         sLog.outString(">> Loaded %u pet name parts", count);
+//         return;
+//     }
+// 
+//     BarGoLink bar(result->GetRowCount());
+// 
+//     do
+//     {
+//         bar.step();
+// 
+//         Field *fields = result->Fetch();
+//         std::string word = fields[0].GetString();
+//         uint32 entry     = fields[1].GetUInt32();
+//         bool   half      = fields[2].GetBool();
+//         if (half)
+//             PetHalfName1[entry].push_back(word);
+//         else
+//             PetHalfName0[entry].push_back(word);
+//         ++count;
+//     }
+//     while (result->NextRow());
+//     delete result;
+// 
+//     sLog.outString();
+//     sLog.outString(">> Loaded %u pet name parts", count);
+// }
+// 
 void ObjectMgr::LoadPetNumber()
 {
     m_NextPetNumber = 1;
@@ -6358,20 +6436,43 @@ uint32 ObjectMgr::GeneratePetNumber()
 
 std::string ObjectMgr::GeneratePetName(uint32 entry)
 {
-    std::vector<std::string> & list0 = PetHalfName0[entry];
-    std::vector<std::string> & list1 = PetHalfName1[entry];
+    std::vector<PetNameLocale> & list0 = PetHalfName0[entry];
+    std::vector<PetNameLocale> & list1 = PetHalfName1[entry];
+
+    LocaleConstant iLoc = sWorld.GetDefaultDbcLocale();
 
     if (list0.empty() || list1.empty())
     {
         CreatureInfo const *cinfo = GetCreatureTemplate(entry);
-        char const* petname = GetPetName(cinfo->family, sWorld.GetDefaultDbcLocale());
+        char const* petname = GetPetName(cinfo->family, iLoc);
         if (!petname)
             petname = cinfo->Name;
         return std::string(petname);
     }
 
-    return *(list0.begin() + urand(0, list0.size() - 1)) + *(list1.begin() + urand(0, list1.size() - 1));
+    std::string name0 = (list0.begin() + urand(0, list0.size() - 1))->Content[iLoc];
+    std::string name1 = (list1.begin() + urand(0, list1.size() - 1))->Content[iLoc];
+
+    return name0 + name1;
+    //return *(list0.begin() + urand(0, list0.size() - 1)) + *(list1.begin() + urand(0, list1.size() - 1));
 }
+
+// std::string ObjectMgr::GeneratePetName(uint32 entry)
+// {
+//     std::vector<std::string> & list0 = PetHalfName0[entry];
+//     std::vector<std::string> & list1 = PetHalfName1[entry];
+// 
+//     if (list0.empty() || list1.empty())
+//     {
+//         CreatureInfo const *cinfo = GetCreatureTemplate(entry);
+//         char const* petname = GetPetName(cinfo->family, sWorld.GetDefaultDbcLocale());
+//         if (!petname)
+//             petname = cinfo->Name;
+//         return std::string(petname);
+//     }
+// 
+//     return *(list0.begin() + urand(0, list0.size() - 1)) + *(list1.begin() + urand(0, list1.size() - 1));
+// }
 
 void ObjectMgr::LoadCorpses()
 {
