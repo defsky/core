@@ -6351,7 +6351,10 @@ void ObjectMgr::LoadPetNames()
             std::string word = fields[i + 2].GetCppString();
 
             data.Content.resize(i + 1);
-            data.Content[i] = word;
+            if (!word.empty())
+                data.Content[i] = word;
+            else
+                data.Content[i] = data.Content[0];
 
             //if (!word.empty())
             //{
