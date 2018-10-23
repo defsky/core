@@ -210,10 +210,35 @@ bool GOHello_go_field_repair_bot_74A(Player* pPlayer, GameObject* pGo)
 ## go_orb_of_command
 ######*/
 
+enum 
+{
+    ORB_GOSSIP_MENU_QUEST_REWARDED = 2,
+    ORB_GOSSIP_MENU_QUEST_NOT_REWARDED = 3660,
+    ORB_GOSSIP_ITEM_PUT_HAND = 100101,
+    ORB_NEED_QUEST = 7761,
+};
+
 bool GOHello_go_orb_of_command(Player* pPlayer, GameObject* pGo)
 {
-    if (pPlayer->GetQuestRewardStatus(7761))
+    if (pPlayer->GetQuestRewardStatus(ORB_NEED_QUEST))
+    {
+        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT,ORB_GOSSIP_ITEM_PUT_HAND, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+        pPlayer->SEND_GOSSIP_MENU(ORB_GOSSIP_MENU_QUEST_REWARDED, pGo->GetGUID());
+    }
+    else
+    {
+        pPlayer->SEND_GOSSIP_MENU(ORB_GOSSIP_MENU_QUEST_NOT_REWARDED, pGo->GetGUID());
+    }
+
+    return true;
+}
+
+bool GOSelect_go_orb_of_command(Player* pPlayer, GameObject* pGo, uint32 sender, uint32 action)
+{
+    if(action == GOSSIP_ACTION_INFO_DEF + 1)
+    {
         pPlayer->TeleportTo(469, -7664.76f, -1100.87f, 399.679f, 0.561981f);
+    }
 
     return true;
 }
@@ -574,6 +599,7 @@ void AddSC_go_scripts()
     newscript = new Script;
     newscript->Name = "go_orb_of_command";
     newscript->pGOHello =           &GOHello_go_orb_of_command;
+    newscript->pGOGossipSelect =    &(GOSelect_go_orb_of_command);
     newscript->RegisterSelf();
 
     newscript = new Script;

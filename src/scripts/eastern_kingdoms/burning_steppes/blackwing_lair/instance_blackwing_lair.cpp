@@ -68,6 +68,7 @@ static RazCoords RazOeufs[] =
 
 enum
 {
+    BLACKWING_LAIR_MAP_ID       = 469,
     AT_ORB_OF_COMMAND           = 3847,
     AT_ENTER_VAEL_ROOM          = 3626,
 
@@ -1047,12 +1048,15 @@ bool AreaTrigger_at_orb_of_command(Player* pPlayer, const AreaTriggerEntry* pAt)
 {
     if (pAt->id == AT_ORB_OF_COMMAND)
     {
-        if (pPlayer->isDead())
+        if (pPlayer->GetQuestRewardStatus(7761) && pPlayer->isDead())
         {
-            pPlayer->ResurrectPlayer(0.5f);
-            pPlayer->SpawnCorpseBones();
-            if (pPlayer->GetQuestRewardStatus(7761))
-                pPlayer->TeleportTo(469, -7664.76f, -1100.87f, 399.679f, 0.561981f);
+            Corpse* playerCorpse = pPlayer->GetCorpse();
+            if (playerCorpse && playerCorpse->GetMapId() == BLACKWING_LAIR_MAP_ID)
+            {
+                pPlayer->ResurrectPlayer(0.5f);
+                pPlayer->SpawnCorpseBones();
+                pPlayer->TeleportTo(BLACKWING_LAIR_MAP_ID, -7664.76f, -1100.87f, 399.679f, 0.561981f);
+            }
         }
     }
 
