@@ -959,6 +959,8 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void SendTransferAborted(uint8 reason);
         void SendInstanceResetWarning(uint32 mapid, uint32 time);
 
+        void SendRaidGroupOnly();
+
         Creature* GetNPCIfCanInteractWith(ObjectGuid guid, uint32 npcflagmask);
         GameObject* GetGameObjectIfCanInteractWith(ObjectGuid guid, uint32 gameobject_type = MAX_GAMEOBJECT_TYPE) const;
 
