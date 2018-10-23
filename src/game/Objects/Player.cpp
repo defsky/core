@@ -18437,6 +18437,14 @@ void Player::SendUpdateToOutOfRangeGroupMembers()
         pet->ResetAuraUpdateMask();
 }
 
+void Player::SendRaidGroupOnly()
+{
+    WorldPacket data(SMSG_RAID_GROUP_ONLY, 4 + 4);
+    data << uint32(0);
+    data << uint32(ERR_RAID_GROUP_REQUIRED);            // error used only when timer = 0
+    GetSession()->SendPacket(&data);
+}
+
 void Player::SendTransferAborted(uint8 reason)
 {
     WorldPacket data(SMSG_TRANSFER_ABORTED, 1);
