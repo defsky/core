@@ -53,6 +53,14 @@ class MovementBroadcaster;
 
 World& GetSWorld();
 
+enum
+{
+    MANGOS_STRING_ENTRY_DAY = 12003,
+    MANGOS_STRING_ENTRY_HOUR = 12004,
+    MANGOS_STRING_ENTRY_MINUTE = 12005,
+    MANGOS_STRING_ENTRY_SECOND = 12006,
+};
+
 // ServerMessages.dbc
 enum ServerMessageType
 {
@@ -649,6 +657,8 @@ class World
         char* const GetPatchName() const;
 
         LocaleConstant GetDefaultDbcLocale() const { return m_defaultDbcLocale; }
+
+        std::string secsToLocaleTimeString(time_t timeInSecs, bool shortText = false, bool hoursOnly = false);
 
         /// Get the path where data (dbc, maps) are stored on disk
         std::string GetDataPath() const { return m_dataPath; }

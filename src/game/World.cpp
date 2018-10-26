@@ -2419,7 +2419,8 @@ void World::ShutdownMsg(bool show, Player* player)
             // > 12 h ; every 12 h
             (m_ShutdownTimer > 12 * HOUR   && (m_ShutdownTimer % (12 * HOUR)) == 0))
     {
-        std::string str = secsToTimeString(m_ShutdownTimer);
+        //std::string str = secsToTimeString(m_ShutdownTimer);
+        std::string str = secsToLocaleTimeString(m_ShutdownTimer);
 
         ServerMessageType msgid = (m_ShutdownMask & SHUTDOWN_MASK_RESTART) ? SERVER_MSG_RESTART_TIME : SERVER_MSG_SHUTDOWN_TIME;
 
@@ -2956,4 +2957,51 @@ void SessionPacketSendTask::run()
     {
         session->SendPacket(&m_data);
     }
+}
+
+std::string World::secsToLocaleTimeString(time_t timeInSecs, bool shortText, bool hoursOnly)
+{
+    time_t secs    = timeInSecs % MINUTE;
+    time_t minutes = timeInSecs % HOUR / MINUTE;
+    time_t hours   = timeInSecs % DAY  / HOUR;
+    time_t days    = timeInSecs / DAY;
+
+    std::ostringstream ss;
+    if(days)
+    {
+        ss << days;
+        if (shortText)
+            ss << "d";
+        else
+            ss << sObjectMgr.GetMangosStringForDBCLocale(MANGOS_STRING_ENTRY_DAY);
+    }
+    if(hours || hoursOnly)
+    {
+        ss << hours;
+        if (shortText)
+            ss << "h";
+        else
+            ss << sObjectMgr.GetMangosStringForDBCLocale(MANGOS_STRING_ENTRY_HOUR);
+    }
+    if(!hoursOnly)
+    {
+        if(minutes)
+        {
+            ss << minutes;
+            if (shortText)
+                ss << "m";
+            else
+                ss << sObjectMgr.GetMangosStringForDBCLocale(MANGOS_STRING_ENTRY_MINUTE);
+        }
+        if (secs || (!days && !hours && !minutes))
+        {
+            ss << secs;
+            if (shortText)
+                ss << "s";
+            else
+                ss << sObjectMgr.GetMangosStringForDBCLocale(MANGOS_STRING_ENTRY_SECOND);
+        }
+    }
+
+    return ss.str();
 }
