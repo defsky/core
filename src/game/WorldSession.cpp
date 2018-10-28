@@ -84,7 +84,7 @@ WorldSession::WorldSession(uint32 id, WorldSocket *sock, AccountTypes sec, time_
     m_sessionDbLocaleIndex(sObjectMgr.GetIndexForLocale(locale)), m_latency(0), m_tutorialState(TUTORIALDATA_UNCHANGED), m_warden(nullptr),
     m_bot(nullptr), m_lastReceivedPacketTime(0), _clientOS(CLIENT_OS_UNKNOWN), _gameBuild(0),
     _charactersCount(10), _characterMaxLevel(0), _clientHashComputeStep(HASH_NOT_COMPUTED), m_masterSession(nullptr), m_nodeSession(nullptr),
-    m_masterPlayer(nullptr), m_lastPubChannelMsgTime(NULL)
+    m_masterPlayer(nullptr), m_lastPubChannelMsgTime(NULL), m_planFlags(0), m_remainingTime(0), m_restedTime(0), m_freeTime(0), m_lastChargeTime(0)
 {
     if (sock)
     {
@@ -303,6 +303,246 @@ bool WorldSession::ForcePlayerLogoutDelay()
     return false;
 }
 
+uint8 WorldSession::GetBillingPlanFlags()
+{
+    return m_planFlags; 
+}
+uint32 WorldSession::GetBillingRemainingTime()
+{
+    uint32 result = 0;
+
+    if (m_planFlags & BILLING_PLAN_PERIOD)
+        result = m_remainingTime;
+    else if (m_planFlags & BILLING_PLAN_FREE)
+        result = m_freeTime;
+    else if (m_planFlags & BILLING_PLAN_TICK)
+        result = m_restedTime;
+
+   uint8 mod = result % MINUTE;
+   if (mod != 0)
+       result = (result - mod) / MINUTE;
+   else
+       result = result / MINUTE;
+
+   if (result == 0)
+       result = 1;
+
+    return result;
+}
+uint32 WorldSession::GetBillingRestedTime()
+{
+    uint32 result = 0;
+
+    if (m_freeTime > 0)
+    {
+        if (m_remainingTime > 0)
+        {
+            uint8 mod = m_remainingTime % MINUTE;
+            if (mod != 0)
+                result = (m_remainingTime - mod) / MINUTE + 1;
+            else
+                result = m_remainingTime / MINUTE;
+        }
+        else if (m_restedTime > 0)
+        {
+            uint8 mod = m_restedTime % MINUTE;
+            if (mod != 0)
+                result = (m_restedTime - mod) / MINUTE + 1;
+            else
+                result = m_restedTime / MINUTE;;
+        }
+    }
+    else if (m_remainingTime > 0)
+    {
+        if (m_restedTime > 0)
+        {
+            uint8 mod = m_restedTime % MINUTE;
+            if (mod != 0)
+                result = (m_restedTime - mod) / MINUTE + 1;
+            else
+                result = m_restedTime / MINUTE;
+        }
+    }
+    return result;
+}
+
+bool WorldSession::BillingLoad()
+{
+    QueryResult *result = LoginDatabase.PQuery("SELECT PlanFlags, TimeRemaining, TimeRested, TimeFree FROM account_billing WHERE id = %u", _accountId);
+    if (result)
+    {
+        //m_planFlags         = (*result)[0].GetUInt8();
+        m_remainingTime     = (*result)[1].GetUInt32();
+        m_restedTime        = (*result)[2].GetUInt32();
+        m_freeTime          = (*result)[3].GetUInt32();
+        m_lastChargeTime    = time(NULL);
+
+        delete result;
+
+        if (m_freeTime > 0)
+        {
+            m_planFlags = BILLING_PLAN_FREE;
+
+            if (m_remainingTime > 0 || m_restedTime > 0)
+                m_planFlags = m_planFlags | BILLING_PLAN_EXTRA;
+        }
+        else if (m_remainingTime > 0)
+        {
+            m_planFlags = BILLING_PLAN_PERIOD;
+
+            if (m_restedTime > 0)
+                m_planFlags = m_planFlags | BILLING_PLAN_EXTRA;
+        }
+        else if (m_restedTime > 0)
+        {
+            m_planFlags = BILLING_PLAN_TICK;
+        }
+        else
+        {
+            return false;
+        }
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void WorldSession::BillingChargeStart()
+{
+    m_lastChargeTime = time(NULL);
+    m_billingIsCharging = true;
+}
+
+void WorldSession::BillingChargeStop()
+{
+    m_billingIsCharging = false;
+}
+
+void WorldSession::SendBilling()
+{
+    WorldPacket packet(SMSG_AUTH_RESPONSE, 1 + 4 + 1 + 4);
+    packet << uint8(AUTH_OK);
+    packet << uint32(GetBillingRemainingTime());                                    // BillingTimeRemaining
+    packet << uint8(GetBillingPlanFlags());                                     // BillingPlanFlags
+    packet << uint32(GetBillingRestedTime());                                    // BillingTimeRested
+
+    SendPacket(&packet);
+}
+
+void WorldSession::BillingSave()
+{
+    static SqlStatementID saveBilling;
+
+    SqlStatement stmt = LoginDatabase.CreateStatement(saveBilling, "UPDATE account_billing SET PlanFlags = ?, TimeRemaining = ?, TimeRested = ?, TimeFree = ? WHERE id = ?");
+    stmt.PExecute(m_planFlags, m_remainingTime, m_restedTime, m_freeTime, _accountId);
+}
+
+uint32 WorldSession::BillingCharge(time_t currTime)
+{
+    if (!m_billingIsCharging)
+        return m_remainingTime + m_restedTime + m_freeTime;
+
+    uint32 cost = uint32(currTime - m_lastChargeTime);
+    m_lastChargeTime = currTime;
+    
+    if (cost <= 0)
+        return m_remainingTime + m_restedTime + m_freeTime;
+        
+    if (m_freeTime + m_remainingTime + m_restedTime <= cost)
+    {
+        m_freeTime = 0;
+        m_remainingTime = 0;
+        m_restedTime = 0;
+        return 0;
+    }
+
+    bool flagNeedUpdate = false;
+
+    if (m_freeTime > 0)
+    {
+        m_freeTime -= cost;
+        if (m_freeTime <= 0)
+        {
+            if (m_freeTime < 0 && m_remainingTime > 0)
+            {
+                m_planFlags = BILLING_PLAN_PERIOD;
+                m_remainingTime += m_freeTime;
+                m_freeTime = 0;
+                if (m_remainingTime <= 0 && m_restedTime > 0)
+                {
+                    m_planFlags = BILLING_PLAN_TICK;
+                    if (m_remainingTime < 0)
+                    {
+                        m_restedTime += m_remainingTime;
+                        m_remainingTime = 0;
+                        if (m_restedTime < 0)
+                            m_restedTime = 0;
+                    }
+                }
+                else if (m_remainingTime <= 0)
+                {
+                    m_remainingTime = 0;
+                }
+                else if (m_remainingTime > 0 && m_restedTime > 0)
+                {
+                    m_planFlags |= BILLING_PLAN_EXTRA;
+                }
+            }
+            else if (m_freeTime < 0 && m_restedTime > 0)
+            {
+                m_planFlags = BILLING_PLAN_TICK;
+                m_restedTime += m_freeTime;
+                m_freeTime = 0;
+                if (m_restedTime < 0)
+                    m_restedTime = 0;
+            }
+            else if (m_freeTime < 0)
+                m_freeTime = 0;
+            else
+            {
+                if (m_remainingTime > 0 && m_restedTime > 0)
+                    m_planFlags = BILLING_PLAN_PERIOD | BILLING_PLAN_EXTRA;
+                else if (m_restedTime > 0)
+                    m_planFlags = BILLING_PLAN_TICK;
+                else if (m_remainingTime > 0)
+                    m_planFlags = BILLING_PLAN_PERIOD;
+            }
+        }
+    }
+    else if (m_remainingTime > 0)
+    {
+        m_remainingTime -= cost;
+        if (m_remainingTime <= 0)
+        {
+            if (m_restedTime > 0)
+            {
+                m_planFlags = BILLING_PLAN_TICK;
+                if (m_remainingTime < 0)
+                {
+                    m_restedTime += m_remainingTime;
+                    m_remainingTime = 0;
+                    if (m_restedTime < 0)
+                        m_restedTime = 0;
+                }
+            }
+            else
+                m_remainingTime = 0;
+        }
+    }
+    else if (m_restedTime > 0)
+    {
+        m_restedTime -= cost;
+        if (m_restedTime < 0)
+            m_restedTime = 0;
+    }
+    // else  should not be here
+
+    return m_remainingTime + m_restedTime + m_freeTime;
+}
+
 /// Update the WorldSession (triggered by World update)
 bool WorldSession::Update(PacketFilter& updater)
 {
@@ -355,6 +595,16 @@ bool WorldSession::Update(PacketFilter& updater)
         ///- If necessary, log the player out
         time_t currTime = time(nullptr);
         bool forceConnection = sPlayerBotMgr.ForceAccountConnection(this);
+ 
+        WorldPacket pkt;
+        uint32 time_left = BillingCharge(currTime);
+        if (time_left <= 0)
+        {
+            forceConnection = false;
+            LogoutPlayer(true);
+            return false;
+        }
+
         if (sWorld.IsStopped())
             forceConnection = false;
         if ((!m_Socket || (ShouldLogOut(currTime) && !m_playerLoading)) && !forceConnection && m_bot == nullptr)
@@ -632,6 +882,9 @@ void WorldSession::LogoutPlayer(bool Save)
     // finish pending transfers before starting the logout
     /* while(_player && _player->IsBeingTeleportedFar())
         HandleMoveWorldportAckOpcode(); */
+
+    BillingChargeStop();
+    SendBilling();
 
     m_idleTime = WorldTimer::getMSTime();
     m_playerLogout = true;

@@ -276,44 +276,21 @@ void World::AddSession_(WorldSession* s)
 
     if (!s->GetMasterSession())
     {
-        uint8   plan_flags = 0;
-        uint32  time_remaining = 0;
-        uint32  time_rested = 0;
-
-        ResponseCodes   r_code = AUTH_OK;
-
-        QueryResult *result = LoginDatabase.PQuery("SELECT PlanFlags, TimeRemaining, TimeRested FROM account_billing WHERE id = %u", s->GetAccountId());
-        if (result)
-        {
-            plan_flags = (*result)[0].GetUInt8();
-            time_remaining = (*result)[1].GetUInt32();
-            time_rested = (*result)[2].GetUInt32();
-        }
-
-        if (time_remaining == 1)
-        {
-            r_code = AUTH_BILLING_ERROR;
-        }
-        else if(time_remaining == 2)
-        {
-            r_code = AUTH_BILLING_EXPIRED;
-        }
-        else if(time_remaining == 3)
-        {
-            r_code = AUTH_NO_TIME;
-        }
-
         // Checked for 1.12.2
-        WorldPacket packet(SMSG_AUTH_RESPONSE, 1 + 4 + 1 + 4);
+        //WorldPacket packet(SMSG_AUTH_RESPONSE, 1 + 4 + 1 + 4);
         //packet << uint8(AUTH_OK);
         //packet << uint32(0);                                    // BillingTimeRemaining
         //packet << uint8(0);                                     // BillingPlanFlags
         //packet << uint32(0);                                    // BillingTimeRested
-        packet << uint8(r_code);
-        packet << uint32(time_remaining);                                    // BillingTimeRemaining
-        packet << uint8(plan_flags);                                     // BillingPlanFlags
-        packet << uint32(time_rested);                                    // BillingTimeRested
-        s->SendPacket(&packet);
+
+        //WorldPacket packet(SMSG_AUTH_RESPONSE, 1 + 4 + 1 + 4);
+        //packet << uint8(AUTH_OK);
+        //packet << uint32(s->GetBillingRemainingTime());                                    // BillingTimeRemaining
+        //packet << uint8(s->GetBillingPlanFlags());                                     // BillingPlanFlags
+        //packet << uint32(s->GetBillingRestedTime());                                    // BillingTimeRested
+
+        //s->SendPacket(&packet);
+        s->SendBilling();
     }
 
     UpdateMaxSessionCounters();
@@ -354,9 +331,12 @@ void World::AddQueuedSession(WorldSession* sess)
     // The 1st SMSG_AUTH_RESPONSE needs to contain other info too.
     WorldPacket packet(SMSG_AUTH_RESPONSE, 1 + 4 + 1 + 4 + 4);
     packet << uint8(AUTH_WAIT_QUEUE);
-    packet << uint32(0);                                    // BillingTimeRemaining
-    packet << uint8(0);                                     // BillingPlanFlags
-    packet << uint32(0);                                    // BillingTimeRested
+    //packet << uint32(0);                                    // BillingTimeRemaining
+    //packet << uint8(0);                                     // BillingPlanFlags
+    //packet << uint32(0);                                    // BillingTimeRested
+    packet << uint32(sess->GetBillingRemainingTime());                                    // BillingTimeRemaining
+    packet << uint8(sess->GetBillingPlanFlags());                                     // BillingPlanFlags
+    packet << uint32(sess->GetBillingRestedTime());                                    // BillingTimeRested
     packet << uint32(GetQueuedSessionPos(sess));            // position in queue
     sess->SendPacket(&packet);
 
