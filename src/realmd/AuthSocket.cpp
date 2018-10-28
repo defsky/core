@@ -858,15 +858,41 @@ bool AuthSocket::_HandleLogonProof()
         delete result;
         OPENSSL_free((void*)K_hex);
 
-        ///- Finish SRP6 and send the final result to the client
-        sha.Initialize();
-        sha.UpdateBigNumbers(&A, &M, &K, NULL);
-        sha.Finalize();
+        //billing check
+        bool bBillingValid = false;
 
-        SendProof(sha);
+        QueryResult *billing_result = LoginDatabase.PQuery("SELECT TimeRemaining, TimeRested, TimeFree FROM account_billing WHERE id = %u", _accountId);
+        if (billing_result)
+        {
+            Field* fields = billing_result->Fetch();
 
-        ///- Set _status to authed!
-        _status = STATUS_AUTHED;
+            uint32  time_remaining = fields[0].GetUInt32();
+            uint32  time_rested = fields[1].GetUInt32();
+            uint32  time_free = fields[2].GetUInt32();
+
+            delete billing_result;
+
+            if (time_remaining > 0 || time_rested > 0 | time_free > 0)
+            {
+                bBillingValid = true;
+                
+                ///- Finish SRP6 and send the final result to the client
+                sha.Initialize();
+                sha.UpdateBigNumbers(&A, &M, &K, NULL);
+                sha.Finalize();
+
+                SendProof(sha);
+
+                ///- Set _status to authed!
+                _status = STATUS_AUTHED;
+            }
+        }
+        if (!bBillingValid)
+        {
+            char data[2] = { CMD_AUTH_LOGON_PROOF, WOW_FAIL_NO_TIME };
+            send(data, sizeof(data));
+            return true;
+        }
     }
     else
     {
@@ -1021,14 +1047,39 @@ bool AuthSocket::_HandleReconnectProof()
 
     if (!memcmp(sha.GetDigest(), lp.R2, SHA_DIGEST_LENGTH))
     {
-        ///- Sending response
-        ByteBuffer pkt;
-        pkt << (uint8)  CMD_AUTH_RECONNECT_PROOF;
-        pkt << (uint8)  0x00;
-        send((char const*)pkt.contents(), pkt.size());
+        //billing check
+        bool bBillingValid = false;
 
-        ///- Set _status to authed!
-        _status = STATUS_AUTHED;
+        QueryResult *billing_result = LoginDatabase.PQuery("SELECT TimeRemaining, TimeRested, TimeFree FROM account_billing WHERE id = %u", _accountId);
+        if (billing_result)
+        {
+            Field* fields = billing_result->Fetch();
+
+            uint32  time_remaining = fields[0].GetUInt32();
+            uint32  time_rested = fields[1].GetUInt32();
+            uint32  time_free = fields[2].GetUInt32();
+
+            delete billing_result;
+
+            if (time_remaining > 0 || time_rested > 0 | time_free > 0)
+            {
+                bBillingValid = true;
+                
+                ///- Sending response
+                ByteBuffer pkt;
+                pkt << (uint8)  CMD_AUTH_RECONNECT_PROOF;
+                pkt << (uint8)  0x00;
+                send((char const*)pkt.contents(), pkt.size());
+
+                ///- Set _status to authed!
+                _status = STATUS_AUTHED;
+            }
+        }
+        if (!bBillingValid)
+        {
+            char data[2] = { CMD_AUTH_LOGON_PROOF, WOW_FAIL_NO_TIME };
+            send(data, sizeof(data));
+        }
 
         return true;
     }

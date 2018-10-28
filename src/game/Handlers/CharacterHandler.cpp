@@ -753,6 +753,8 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
         //for (int i = 0; i < MAX_MOVE_TYPE; ++i)
             //GetWarden()->SendSpeedChange(UnitMoveType(i), pCurrChar->GetSpeed(UnitMoveType(i)));
 
+    BillingChargeStart();
+
     ALL_SESSION_SCRIPTS(this, OnLogin(pCurrChar));
 }
 

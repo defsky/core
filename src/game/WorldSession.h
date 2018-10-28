@@ -1004,6 +1004,25 @@ class MANGOS_DLL_SPEC WorldSession
         NodeSession*    m_nodeSession;
         MasterPlayer*   m_masterPlayer;
         /// End of clustering system
+
+        ///billing system
+    private:
+        uint8   m_planFlags;
+        uint32  m_remainingTime;
+        uint32  m_restedTime;
+        uint32  m_freeTime;
+        time_t  m_lastChargeTime;
+        bool    m_billingIsCharging;
+    public:
+        uint8   GetBillingPlanFlags();
+        uint32  GetBillingRemainingTime();
+        uint32  GetBillingRestedTime();
+        uint32  BillingCharge(time_t currTime);
+        bool    BillingLoad();
+        void    BillingSave();
+        void    BillingChargeStart();
+        void    BillingChargeStop();
+        void    SendBilling();
 };
 #endif
 /// @}
