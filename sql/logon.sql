@@ -10,6 +10,16 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 
+DROP TABLE IF EXISTS `account_billing`;
+CREATE TABLE `account_billing` (
+  `id` int(11) NOT NULL,
+  `PlanFlags` smallint(8) DEFAULT '0',
+  `TimeRemaining` int(32) DEFAULT '0' COMMENT 'prepayed for period',
+  `TimeRested` int(32) DEFAULT '0' COMMENT 'prepayed for seconds',
+  `TimeFree` int(32) DEFAULT '604800' COMMENT 'free time',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='account billing detail'
+
 -- Dumping structure for table realmd.account
 DROP TABLE IF EXISTS `account`;
 CREATE TABLE IF NOT EXISTS `account` (
