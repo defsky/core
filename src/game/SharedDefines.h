@@ -2618,17 +2618,6 @@ enum TicketType
     GMTICKET_MAX
 };
 
-// billing plan flags
-enum BillingPlanFlags
-{
-    BILLING_PLAN_PERIOD     = 0x01, // month card
-    BILLING_PLAN_PERIOD_X   = 0x02, // usage not clear
-    BILLING_PLAN_FREE       = 0x04, // free time
-    BILLING_PLAN_IGR        = 0x08, // not clear
-    BILLING_PLAN_TICK       = 0x10, // second card
-    BILLING_PLAN_EXTRA      = 0x20, // have extra prepayed billing
-};
-
 // Used for some dynamic scaling systems, depending on total population
 #define BLIZZLIKE_REALM_POPULATION 2500
 

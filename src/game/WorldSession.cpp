@@ -368,16 +368,21 @@ uint32 WorldSession::GetBillingRestedTime()
 
 bool WorldSession::BillingLoad()
 {
-    QueryResult *result = LoginDatabase.PQuery("SELECT PlanFlags, TimeRemaining, TimeRested, TimeFree FROM account_billing WHERE id = %u", _accountId);
+    QueryResult *result = LoginDatabase.PQuery("SELECT TickRested, PeriodValidDate, FreeValidDate FROM account_billing WHERE id = %u", _accountId);
     if (result)
     {
-        //m_planFlags         = (*result)[0].GetUInt8();
-        m_remainingTime     = (*result)[1].GetUInt32();
-        m_restedTime        = (*result)[2].GetUInt32();
-        m_freeTime          = (*result)[3].GetUInt32();
-        m_lastChargeTime    = time(NULL);
+        uint32  tickRested = (*result)[0].GetUInt32();
+        uint64  periodValidDate = (*result)[1].GetUInt64();
+        uint64  freeValidDate = (*result)[2].GetUInt64();
 
         delete result;
+
+        m_lastChargeTime = time(NULL);
+        uint64  currTime = uint64(m_lastChargeTime);
+        
+        m_restedTime        = tickRested;
+        m_remainingTime     = periodValidDate > currTime ? periodValidDate - currTime : 0;
+        m_freeTime          = freeValidDate > currTime ? freeValidDate - currTime : 0;
 
         if (m_freeTime > 0)
         {
@@ -412,7 +417,6 @@ bool WorldSession::BillingLoad()
 
 void WorldSession::BillingChargeStart()
 {
-    m_lastChargeTime = time(NULL);
     m_billingIsCharging = true;
 }
 
@@ -436,14 +440,14 @@ void WorldSession::BillingSave()
 {
     static SqlStatementID saveBilling;
 
-    SqlStatement stmt = LoginDatabase.CreateStatement(saveBilling, "UPDATE account_billing SET PlanFlags = ?, TimeRemaining = ?, TimeRested = ?, TimeFree = ? WHERE id = ?");
-    stmt.PExecute(m_planFlags, m_remainingTime, m_restedTime, m_freeTime, _accountId);
+    SqlStatement stmt = LoginDatabase.CreateStatement(saveBilling, "UPDATE account_billing SET PlanFlags = ?, TickRested = ? WHERE id = ?");
+    stmt.PExecute(m_planFlags, m_restedTime, _accountId);
 }
 
 uint32 WorldSession::BillingCharge(time_t currTime)
 {
-    if (!m_billingIsCharging)
-        return m_remainingTime + m_restedTime + m_freeTime;
+    //if (!m_billingIsCharging)
+    //    return m_remainingTime + m_restedTime + m_freeTime;
 
     uint32 cost = uint32(currTime - m_lastChargeTime);
     m_lastChargeTime = currTime;
@@ -474,7 +478,7 @@ uint32 WorldSession::BillingCharge(time_t currTime)
                 if (m_remainingTime <= 0 && m_restedTime > 0)
                 {
                     m_planFlags = BILLING_PLAN_TICK;
-                    if (m_remainingTime < 0)
+                    if (m_remainingTime < 0 && m_billingIsCharging)
                     {
                         m_restedTime += m_remainingTime;
                         m_remainingTime = 0;
@@ -494,10 +498,13 @@ uint32 WorldSession::BillingCharge(time_t currTime)
             else if (m_freeTime < 0 && m_restedTime > 0)
             {
                 m_planFlags = BILLING_PLAN_TICK;
-                m_restedTime += m_freeTime;
+                if (m_billingIsCharging)
+                {
+                    m_restedTime += m_freeTime;
+                    if (m_restedTime < 0)
+                        m_restedTime = 0;
+                }
                 m_freeTime = 0;
-                if (m_restedTime < 0)
-                    m_restedTime = 0;
             }
             else if (m_freeTime < 0)
                 m_freeTime = 0;
@@ -520,19 +527,17 @@ uint32 WorldSession::BillingCharge(time_t currTime)
             if (m_restedTime > 0)
             {
                 m_planFlags = BILLING_PLAN_TICK;
-                if (m_remainingTime < 0)
+                if (m_remainingTime < 0 && m_billingIsCharging)
                 {
                     m_restedTime += m_remainingTime;
-                    m_remainingTime = 0;
                     if (m_restedTime < 0)
                         m_restedTime = 0;
                 }
             }
-            else
-                m_remainingTime = 0;
+            m_remainingTime = 0;
         }
     }
-    else if (m_restedTime > 0)
+    else if (m_restedTime > 0 && m_billingIsCharging)
     {
         m_restedTime -= cost;
         if (m_restedTime < 0)
@@ -1043,6 +1048,8 @@ void WorldSession::LogoutPlayer(bool Save)
 
         DEBUG_LOG("SESSION: Sent SMSG_LOGOUT_COMPLETE Message");
     }
+
+    BillingSave();
 
     if (m_masterPlayer)
     {

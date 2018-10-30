@@ -859,35 +859,19 @@ bool AuthSocket::_HandleLogonProof()
         OPENSSL_free((void*)K_hex);
 
         //billing check
-        bool bBillingValid = false;
-
-        QueryResult *billing_result = LoginDatabase.PQuery("SELECT TimeRemaining, TimeRested, TimeFree FROM account_billing WHERE id = %u", _accountId);
-        if (billing_result)
+        if (CheckBilling())
         {
-            Field* fields = billing_result->Fetch();
+            ///- Finish SRP6 and send the final result to the client
+            sha.Initialize();
+            sha.UpdateBigNumbers(&A, &M, &K, NULL);
+            sha.Finalize();
 
-            uint32  time_remaining = fields[0].GetUInt32();
-            uint32  time_rested = fields[1].GetUInt32();
-            uint32  time_free = fields[2].GetUInt32();
+            SendProof(sha);
 
-            delete billing_result;
-
-            if (time_remaining > 0 || time_rested > 0 | time_free > 0)
-            {
-                bBillingValid = true;
-                
-                ///- Finish SRP6 and send the final result to the client
-                sha.Initialize();
-                sha.UpdateBigNumbers(&A, &M, &K, NULL);
-                sha.Finalize();
-
-                SendProof(sha);
-
-                ///- Set _status to authed!
-                _status = STATUS_AUTHED;
-            }
+            ///- Set _status to authed!
+            _status = STATUS_AUTHED;
         }
-        if (!bBillingValid)
+        else
         {
             char data[2] = { CMD_AUTH_LOGON_PROOF, WOW_FAIL_NO_TIME };
             send(data, sizeof(data));
@@ -949,6 +933,90 @@ bool AuthSocket::_HandleLogonProof()
         }
     }
     return true;
+}
+
+bool AuthSocket::CheckBilling()
+{
+    uint64  tickRested = 0;
+    uint64  periodValidDate = 0;
+    uint64  freeValidDate = 0;
+
+    Field* fields;
+    QueryResult* result;
+
+    result = LoginDatabase.PQuery("SELECT TickRested, PeriodValidDate, FreeValidDate FROM account_billing WHERE id = %u", _accountId);
+    if (result)
+    {
+        fields = result->Fetch();
+
+        tickRested = fields[0].GetUInt64();
+        periodValidDate = fields[1].GetUInt64();
+        freeValidDate = fields[2].GetUInt64();
+
+        delete result;
+    }
+
+    result = LoginDatabase.PQuery("SELECT PlanId, PlanType, PlanTime, unix_timestamp(CommitDate) as commitDate FROM account_billing_plan WHERE id = %u", _accountId);
+    uint64  currTime = uint64(time(NULL));
+    if (result)
+    {
+        std::vector<uint32> ids;
+        do
+        {
+            fields = result->Fetch();
+
+            uint32  planId  = fields[0].GetUInt32();
+            uint8   planType = fields[1].GetUInt8();
+            uint32  planTime = fields[2].GetUInt32();
+            uint64  commitDate = fields[3].GetUInt64();
+
+            uint32  elapsed;
+            switch (planType)
+            {
+                case BILLING_PLAN_PERIOD:
+                    elapsed = currTime - commitDate;
+                    planTime -= elapsed;
+                    periodValidDate = (periodValidDate > currTime) ? periodValidDate + planTime : currTime + planTime;
+                    break;
+                case BILLING_PLAN_FREE:
+                    elapsed = currTime - commitDate;
+                    planTime -= elapsed;
+                    freeValidDate = (freeValidDate > currTime) ? freeValidDate + planTime : currTime + planTime;
+                    break;
+                case BILLING_PLAN_TICK:
+                    tickRested += planTime;
+                    break;
+                default:  //should not be happen
+                    sLog.outString("Error >> Unknown Billing Plan Type, planId : %u ,planType : %u", planId, planType);
+                    break; 
+            }
+
+            ids.push_back(planId);
+
+        } while (result->NextRow());
+
+        delete result;
+
+        LoginDatabase.BeginTransaction();
+
+        bool res = LoginDatabase.PExecute("REPLACE INTO account_billing(id, TickRested, PeriodValidDate, FreeValidDate) VALUES('%u', '%u', '%u', '%u')",_accountId, tickRested, periodValidDate, freeValidDate);
+
+        for(std::vector<uint32>::iterator it=ids.begin();it != ids.end();it++)
+        {
+            res = LoginDatabase.PExecute("DELETE FROM account_billing_plan WHERE PlanId = '%u'",*it);
+        }
+
+        LoginDatabase.CommitTransaction();
+
+        if (!res)
+            sLog.outString("Error >> account_billing and account_billing_plan update failed");
+    }
+
+    if (tickRested > 0 || freeValidDate > currTime || periodValidDate > currTime)
+    {
+        return true;
+    }
+    return false;
 }
 
 /// Reconnect Challenge command handler
@@ -1048,34 +1116,18 @@ bool AuthSocket::_HandleReconnectProof()
     if (!memcmp(sha.GetDigest(), lp.R2, SHA_DIGEST_LENGTH))
     {
         //billing check
-        bool bBillingValid = false;
-
-        QueryResult *billing_result = LoginDatabase.PQuery("SELECT TimeRemaining, TimeRested, TimeFree FROM account_billing WHERE id = %u", _accountId);
-        if (billing_result)
+        if (CheckBilling())
         {
-            Field* fields = billing_result->Fetch();
+            ///- Sending response
+            ByteBuffer pkt;
+            pkt << (uint8)  CMD_AUTH_RECONNECT_PROOF;
+            pkt << (uint8)  0x00;
+            send((char const*)pkt.contents(), pkt.size());
 
-            uint32  time_remaining = fields[0].GetUInt32();
-            uint32  time_rested = fields[1].GetUInt32();
-            uint32  time_free = fields[2].GetUInt32();
-
-            delete billing_result;
-
-            if (time_remaining > 0 || time_rested > 0 | time_free > 0)
-            {
-                bBillingValid = true;
-                
-                ///- Sending response
-                ByteBuffer pkt;
-                pkt << (uint8)  CMD_AUTH_RECONNECT_PROOF;
-                pkt << (uint8)  0x00;
-                send((char const*)pkt.contents(), pkt.size());
-
-                ///- Set _status to authed!
-                _status = STATUS_AUTHED;
-            }
+            ///- Set _status to authed!
+            _status = STATUS_AUTHED;
         }
-        if (!bBillingValid)
+        else
         {
             char data[2] = { CMD_AUTH_LOGON_PROOF, WOW_FAIL_NO_TIME };
             send(data, sizeof(data));
