@@ -16138,7 +16138,7 @@ void Player::SaveToDB(bool online, bool force)
     // Systeme de phasing
     sObjectMgr.SetPlayerWorldMask(GetGUIDLow(), GetWorldMask());
     GetSession()->SaveTutorialsData();                      // changed only while character in game
-    GetSession()->BillingSave();
+    //GetSession()->BillingSave();
 
     CharacterDatabase.CommitTransaction();
 

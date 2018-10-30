@@ -138,6 +138,7 @@ class AuthSocket: public BufferedSocket
         ACE_HANDLE patch_;
 
         void InitPatch();
+        bool CheckBilling();
 };
 #endif
 /// @}

@@ -283,13 +283,6 @@ void World::AddSession_(WorldSession* s)
         //packet << uint8(0);                                     // BillingPlanFlags
         //packet << uint32(0);                                    // BillingTimeRested
 
-        //WorldPacket packet(SMSG_AUTH_RESPONSE, 1 + 4 + 1 + 4);
-        //packet << uint8(AUTH_OK);
-        //packet << uint32(s->GetBillingRemainingTime());                                    // BillingTimeRemaining
-        //packet << uint8(s->GetBillingPlanFlags());                                     // BillingPlanFlags
-        //packet << uint32(s->GetBillingRestedTime());                                    // BillingTimeRested
-
-        //s->SendPacket(&packet);
         s->SendBilling();
     }
 

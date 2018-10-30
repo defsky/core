@@ -169,6 +169,17 @@ inline float finiteAlways(float f) { return finite(f) ? f : 0.0f; }
 // Change this to define which version players can use
 #define SUPPORTED_CLIENT_BUILD CLIENT_BUILD_1_12_1
 
+// billing plan flags
+enum BillingPlanFlags
+{
+    BILLING_PLAN_PERIOD     = 0x01, // month card
+    BILLING_PLAN_PERIOD_X   = 0x02, // usage not clear
+    BILLING_PLAN_FREE       = 0x04, // free time
+    BILLING_PLAN_IGR        = 0x08, // not clear
+    BILLING_PLAN_TICK       = 0x10, // second card
+    BILLING_PLAN_EXTRA      = 0x20, // have extra prepayed billing
+};
+
 enum TimeConstants
 {
     MINUTE = 60,
