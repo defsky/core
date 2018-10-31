@@ -465,6 +465,8 @@ uint32 WorldSession::BillingCharge(time_t currTime)
 
     bool flagNeedUpdate = false;
 
+    uint8 oldFlags = m_planFlags;
+
     if (m_freeTime > 0)
     {
         m_freeTime -= cost;
@@ -544,6 +546,9 @@ uint32 WorldSession::BillingCharge(time_t currTime)
             m_restedTime = 0;
     }
     // else  should not be here
+
+    if (m_planFlags != oldFlags)
+        SendBilling();
 
     return m_remainingTime + m_restedTime + m_freeTime;
 }
