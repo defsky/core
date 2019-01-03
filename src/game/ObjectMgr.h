@@ -1428,7 +1428,7 @@ class ObjectMgr
         MangosStringLocaleMap mMangosStringLocaleMap;
         BroadcastTextLocaleMap mBroadcastTextLocaleMap;
         QuestGreetingLocaleMap mQuestGreetingLocaleMap[QUESTGIVER_TYPE_MAX];
-        TrainerGreetingLocaleMap m_trainerGreetingMap;
+        //TrainerGreetingLocaleMap m_trainerGreetingMap;
         TrainerGreetingLocaleMap mTrainerGreetingLocaleMap;
         GossipMenuItemsLocaleMap mGossipMenuItemsLocaleMap;
         PointOfInterestLocaleMap mPointOfInterestLocaleMap;
