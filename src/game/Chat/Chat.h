@@ -412,7 +412,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleDebugPlaySoundCommand(char* args);
         bool HandleDebugPlayScriptText(char* args);
         bool HandleDebugPlayMusicCommand(char* args);
-        
+
         bool HandleDebugSendBuyErrorCommand(char* args);
         bool HandleDebugSendChannelNotifyCommand(char* args);
         bool HandleDebugSendChatMsgCommand(char* args);
@@ -424,6 +424,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleDebugSendSellErrorCommand(char* args);
         bool HandleDebugSendSpellFailCommand(char* args);
         bool HandleDebugSendOpenBagCommand(char* args);
+        bool HandleDebugOverflowCommand(char* args);
 
         /*
         Send the visual of the next channeled spell after args, suggested macro :
@@ -809,6 +810,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleGetAngleCommand(char* args);
         bool HandleModifyStandStateCommand(char* args);
         bool HandleDieCommand(char* args);
+        bool HandleFacemeCommand(char* args);
         bool HandleFearCommand(char* args);
         bool HandleDamageCommand(char* args);
         bool HandleReviveCommand(char* args);

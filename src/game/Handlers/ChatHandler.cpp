@@ -41,8 +41,11 @@
 #include "Anticheat.h"
 #include "AccountMgr.h"
 
-bool WorldSession::processChatmessageFurtherAfterSecurityChecks(std::string& msg, uint32 lang)
+bool WorldSession::ProcessChatMessageAfterSecurityCheck(std::string& msg, uint32 lang, uint32 msgType)
 {
+    if (!IsLanguageAllowedForChatType(lang, msgType))
+        return false;
+
     if (lang != LANG_ADDON)
     {
         // strip invisible characters for non-addon messages
@@ -59,10 +62,42 @@ bool WorldSession::processChatmessageFurtherAfterSecurityChecks(std::string& msg
             return false;
         }
     }
+
     ChatHandler handler(this);
 
     if (handler.ParseCommands(msg.c_str()))
         return false;
+
+    return true;
+}
+
+bool WorldSession::IsLanguageAllowedForChatType(uint32 lang, uint32 msgType)
+{
+    // Right now we'll just restrict addon language to the appropriate chat types
+    // Anything else is OK (default previous behaviour)
+    switch (lang)
+    {
+        case LANG_ADDON:
+        {
+            switch (msgType)
+            {
+                case CHAT_MSG_PARTY:
+                case CHAT_MSG_GUILD:
+                case CHAT_MSG_OFFICER:
+                case CHAT_MSG_RAID:
+                case CHAT_MSG_RAID_LEADER:
+                case CHAT_MSG_RAID_WARNING:
+                case CHAT_MSG_BATTLEGROUND:
+                case CHAT_MSG_BATTLEGROUND_LEADER:
+                case CHAT_MSG_CHANNEL:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        default:
+            return true;
+    }
 
     return true;
 }
@@ -197,7 +232,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
             recv_data >> channel;
             recv_data >> msg;
 
-            if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
+            if (!ProcessChatMessageAfterSecurityCheck(msg, lang, type))
                 return;
 
             if (msg.empty())
@@ -218,7 +253,7 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket & recv_data)
         case CHAT_MSG_BATTLEGROUND:
         case CHAT_MSG_BATTLEGROUND_LEADER:
             recv_data >> msg;
-            if (!processChatmessageFurtherAfterSecurityChecks(msg, lang))
+            if (!ProcessChatMessageAfterSecurityCheck(msg, lang, type))
                 return;
             if (msg.empty())
                 return;
