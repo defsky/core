@@ -22,7 +22,7 @@ CREATE TABLE `account_billing` (
   `PeriodValidDate` bigint(40) DEFAULT '0' COMMENT 'prepayed for period',
   `FreeValidDate` bigint(40) DEFAULT '0' COMMENT 'free time',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='account billing detail';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='account billing detail';
 
 --
 -- Table structure for table `account_billing_plan`
@@ -36,7 +36,7 @@ CREATE TABLE `account_billing_plan` (
   `PlanType` smallint(8) NOT NULL DEFAULT '0',
   `PlanTime` int(32) NOT NULL DEFAULT '0' COMMENT 'plan time in seconds',
   PRIMARY KEY (`PlanId`)
-) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COMMENT='billing_plan';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='billing_plan';
 
 
 -- Dumping structure for table realmd.account
