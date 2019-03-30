@@ -974,14 +974,10 @@ bool AuthSocket::CheckBilling()
             switch (planType)
             {
                 case BILLING_PLAN_PERIOD:
-                    elapsed = currTime - commitDate;
-                    planTime -= elapsed;
-                    periodValidDate = (periodValidDate > currTime) ? periodValidDate + planTime : currTime + planTime;
+                    periodValidDate = (periodValidDate > commitDate) ? periodValidDate + planTime : commitDate + planTime;
                     break;
                 case BILLING_PLAN_FREE:
-                    elapsed = currTime - commitDate;
-                    planTime -= elapsed;
-                    freeValidDate = (freeValidDate > currTime) ? freeValidDate + planTime : currTime + planTime;
+                    freeValidDate = (freeValidDate > commitDate) ? freeValidDate + planTime : commitDate + planTime;
                     break;
                 case BILLING_PLAN_TICK:
                     tickRested += planTime;
