@@ -757,8 +757,17 @@ bool AuthSocket::_HandleLogonProof()
     {
         if ((lockFlags & FIXED_PIN) == FIXED_PIN)
         {
-            pinResult = VerifyPinData(std::stoi(securityInfo), pinData);
-            BASIC_LOG("[AuthChallenge] Account '%s' using IP '%s' PIN result: %u", _login.c_str(), get_remote_address().c_str(), pinResult);
+            try
+            {
+                pinResult = VerifyPinData(std::stoi(securityInfo), pinData);
+                BASIC_LOG("[AuthChallenge] Account '%s' using IP '%s' PIN result: %u", _login.c_str(), get_remote_address().c_str(), pinResult);
+            }
+            catch (std::exception& e)
+            {
+                BASIC_LOG("[AuthChallenge] Account '%s' using IP '%s' securityInfo: %s exception: %s",
+                        _login.c_str(), get_remote_address().c_str(), securityInfo.c_str(), e.what());
+                pinResult = false;
+            }
         }
         else if ((lockFlags & TOTP) == TOTP)
         {
