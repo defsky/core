@@ -3301,7 +3301,8 @@ void Spell::cancel()
         return;
 
     // channeled spells don't display interrupted message even if they are interrupted, possible other cases with no "Interrupted" message
-    bool sendInterrupt = m_channeled && m_spellState != SPELL_STATE_PREPARING ? false : true;
+    //bool sendInterrupt = m_channeled && m_spellState != SPELL_STATE_PREPARING ? false : true;
+    bool sendInterrupt = m_spellState != SPELL_STATE_PREPARING ? false : true;
 
     m_autoRepeat = false;
     switch (m_spellState)
@@ -3916,6 +3917,45 @@ void Spell::update(uint32 difftime)
         {
             if (m_timer > 0)
             {
+                // tame quest and tame spell
+                // cancel spell when target's victim is not caster
+                switch (m_spellInfo->Id)
+                {
+                    // hunter's skill, tame beast
+                    case 1515:
+
+                    // rod of tame's skill
+                    // Dwarf hunter
+                    case 19548:
+                    case 19674:
+                    case 19687:
+                    // Tauren hunter
+                    case 19688:
+                    case 19689:
+                    case 19692:
+                    // Orc and Troll hunter
+                    case 19694:
+                    case 19696:
+                    case 19697:
+                    // Night Elf hunter
+                    case 19693:
+                    case 19699:
+                    case 19700:
+                        if (Unit *target = m_targets.getUnitTarget())
+                        {
+                            uint64 m_caster_guid = (m_caster->GetObjectGuid()).GetRawValue();
+
+                            if (Unit* target_victim = target->getVictim())
+                            {
+                                uint64 hostile_guid = (target_victim->GetObjectGuid()).GetRawValue();
+                                if (m_caster_guid != hostile_guid && m_spellState == SPELL_STATE_CASTING)
+                                    cancel();
+                                DETAIL_LOG("m_caster guid: %d hostile_guid: %d", m_caster_guid, hostile_guid);
+                            }
+                        }
+                        break;
+                }
+
                 if (m_caster->GetTypeId() == TYPEID_PLAYER && (m_spellInfo->Id != 24322) && (m_spellInfo->Id != 24323))
                 {
                     // check if player has jumped before the channeling finished

@@ -1731,6 +1731,11 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             if (!caster || !caster->isAlive())
                 return;
 
+            DETAIL_LOG("Aura::HandleAuraDummy m_removeMode :%d Spell Id :%d", m_removeMode, GetId());
+
+            if (m_removeMode != AURA_REMOVE_BY_CHANNEL)
+                return;
+
             uint32 finalSpellId = 0;
             switch (GetId())
             {
@@ -3104,6 +3109,10 @@ void Aura::HandleModCharm(bool apply, bool Real)
                     target->SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, uint32(time(nullptr)));
                 }
             }
+
+            //let pet that just tamed to follow caster
+            //pCreaTarget->GetMotionMaster()->Clear(false);
+            pCreaTarget->GetMotionMaster()->MoveFollow(caster, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
         }
         else if (Player* pPlayer = target->ToPlayer())
         {
