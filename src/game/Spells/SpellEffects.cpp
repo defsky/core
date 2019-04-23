@@ -6047,7 +6047,14 @@ void Spell::EffectSummonDeadPet(SpellEffectIndex /*eff_idx*/)
     Player *_player = (Player*)m_caster;
     Pet *pet = _player->GetPet();
     if (!pet)
-        return;
+    {
+        pet = new Pet;
+        if (!pet->LoadPetFromDB(_player))
+        {
+            delete pet;
+            return;
+        }
+    }
     if (pet->isAlive())
         return;
     if (damage < 0)
@@ -6062,6 +6069,9 @@ void Spell::EffectSummonDeadPet(SpellEffectIndex /*eff_idx*/)
     pet->SetHealth(uint32(pet->GetMaxHealth() * (float(damage) / 100)));
 
     pet->AIM_Initialize();
+    
+    // no effect
+    //pet->SetVisibility(VISIBILITY_ON);
 
     // _player->PetSpellInitialize(); -- action bar not removed at death and not required send at revive
     pet->SavePetToDB(PET_SAVE_AS_CURRENT);

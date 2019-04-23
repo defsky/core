@@ -6169,11 +6169,27 @@ SpellCastResult Spell::CheckCast(bool strict)
             }
             case SPELL_EFFECT_SUMMON_DEAD_PET:
             {
-                Creature *pet = m_caster->GetPet();
+                //Creature *pet = m_caster->GetPet();
+                Pet *pet = m_caster->GetPet();
                 if (!pet)
-                    return SPELL_FAILED_NO_PET;
+                {
+                    if (m_caster->getClass() == CLASS_HUNTER)
+                    {
+                        CharacterPetCache* pPetCache = sCharacterDatabaseCache.GetCharacterPetByOwner(((Player*)m_caster)->GetGUIDLow());
+                        if (!pPetCache)
+                        {
+                            return SPELL_FAILED_NO_PET;
+                        }
+                    }
+                    else
+                    {
+                        return SPELL_FAILED_NO_PET;
+                    }
+                    // no effect
+                    //pet->SetVisibility(VISIBILITY_OFF);
+                }
 
-                if (pet->isAlive())
+                if (pet && pet->isAlive())
                     return SPELL_FAILED_ALREADY_HAVE_SUMMON;
 
                 break;
@@ -6194,15 +6210,66 @@ SpellCastResult Spell::CheckCast(bool strict)
             {
                 if (m_caster->GetPetGuid())                 // let warlock do a replacement summon
                 {
-                    if (m_caster->GetTypeId() == TYPEID_PLAYER && m_caster->getClass() == CLASS_WARLOCK)
+                    if (m_caster->GetTypeId() == TYPEID_PLAYER)
                     {
-                        Pet* pet = ((Player*)m_caster)->GetPet();
-                        // Nostalrius : Fix spellId (celui de MaNGOS est post-BC)
-                        if (strict && pet)                //starting cast, trigger pet stun (cast by pet so it doesn't attack player)
-                            pet->CastSpell(pet, 29825, true, nullptr, nullptr, pet->GetObjectGuid());
+                        Pet* pet = nullptr;
+                        switch (m_caster->getClass())
+                        {
+                            case CLASS_WARLOCK:
+                                pet = ((Player*)m_caster)->GetPet();
+                                // Nostalrius : Fix spellId (celui de MaNGOS est post-BC)
+                                if (strict && pet)                //starting cast, trigger pet stun (cast by pet so it doesn't attack player)
+                                    pet->CastSpell(pet, 29825, true, nullptr, nullptr, pet->GetObjectGuid());
+                                break;
+                            case CLASS_HUNTER:  // hunter's dead pet should fail
+                                pet = ((Player*)m_caster)->GetPet();
+                                if (pet)
+                                {
+                                    if(pet->isAlive())
+                                    {
+                                        return SPELL_FAILED_ALREADY_HAVE_SUMMON;
+                                    }
+                                    else
+                                    {
+                                        return SPELL_FAILED_TARGETS_DEAD;
+                                    }
+                                }
+                                else
+                                {
+                                    return SPELL_FAILED_NO_PET;
+                                }
+                                break;
+                            default:
+                                return SPELL_FAILED_ALREADY_HAVE_SUMMON;
+                        }
                     }
                     else
-                        return SPELL_FAILED_ALREADY_HAVE_SUMMON;
+                        //return SPELL_FAILED_ALREADY_HAVE_SUMMON;
+                        return SPELL_FAILED_DONT_REPORT;
+                }
+                else
+                {
+                    if (m_caster->GetTypeId() == TYPEID_PLAYER)
+                    {
+                        switch (m_caster->getClass())
+                        {
+                            case CLASS_HUNTER:
+                                // for hunter's dead pet and corpse dispeared
+                                CharacterPetCache* pPetCache = sCharacterDatabaseCache.GetCharacterPetByOwner(((Player*)m_caster)->GetGUIDLow());
+                                if (pPetCache)
+                                {
+                                    if (pPetCache->curhealth <= 0)
+                                    {
+                                        return SPELL_FAILED_TARGETS_DEAD;
+                                    }
+                                }
+                                else
+                                {
+                                    return SPELL_FAILED_NO_PET;
+                                }
+                                break;
+                        }
+                    }
                 }
 
                 if (m_caster->GetCharmGuid())

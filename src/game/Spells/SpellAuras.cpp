@@ -3110,7 +3110,7 @@ void Aura::HandleModCharm(bool apply, bool Real)
                 }
             }
 
-            //let pet that just tamed to follow caster
+            //let pet that just tamed by rod of tame to follow caster
             //pCreaTarget->GetMotionMaster()->Clear(false);
             pCreaTarget->GetMotionMaster()->MoveFollow(caster, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
         }
