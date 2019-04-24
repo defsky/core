@@ -1311,7 +1311,8 @@ void Creature::SetLootRecipient(Unit *unit)
 
     // set player for non group case or if group will disbanded
     if (unit->IsPet())
-        m_lootRecipientGuid = unit->GetObjectGuid();
+        //m_lootRecipientGuid = unit->GetObjectGuid();
+        m_lootRecipientGuid = unit->GetOwnerGuid();
     else
         m_lootRecipientGuid = player->GetObjectGuid();
 
