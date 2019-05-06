@@ -6808,6 +6808,11 @@ bool ChatHandler::HandleAccountCharactersCommand(char* args)
     return true;
 }
 
+bool ChatHandler::HandleAccountSetCommand(char* args)
+{
+    return false;
+}
+
 /// Set/Unset the expansion level for an account
 bool ChatHandler::HandleAccountSetAddonCommand(char* args)
 {

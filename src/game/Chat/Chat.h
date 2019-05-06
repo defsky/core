@@ -350,6 +350,7 @@ class MANGOS_DLL_SPEC ChatHandler
         bool HandleAccountLockCommand(char* args);
         bool HandleAccountOnlineListCommand(char* args);
         bool HandleAccountPasswordCommand(char* args);
+        bool HandleAccountSetCommand(char* args);
         bool HandleAccountSetAddonCommand(char* args);
         bool HandleAccountSetGmLevelCommand(char* args);
         bool HandleAccountSetPasswordCommand(char* args);

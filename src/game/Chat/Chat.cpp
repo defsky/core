@@ -93,6 +93,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { NODE, "gmlevel",        SEC_CONSOLE,        true,  &ChatHandler::HandleAccountSetGmLevelCommand,   "", nullptr },
         { NODE, "password",       SEC_CONSOLE,        true,  &ChatHandler::HandleAccountSetPasswordCommand,  "", nullptr },
         { NODE, "locked",         SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleAccountSetLockedCommand,    "", nullptr },
+        { NODE, "",               SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleAccountSetCommand,          "", nullptr },
         { MSTR, nullptr,       0,                  false, nullptr,                                           "", nullptr }
     };
 
@@ -103,7 +104,7 @@ ChatCommand * ChatHandler::getCommandTable()
         { NODE, "delete",         SEC_CONSOLE,        true,  &ChatHandler::HandleAccountDeleteCommand,       "", nullptr },
         { NODE, "onlinelist",     SEC_CONSOLE,        true,  &ChatHandler::HandleAccountOnlineListCommand,   "", nullptr },
         { NODE, "lock",           SEC_PLAYER,         true,  &ChatHandler::HandleAccountLockCommand,         "", nullptr },
-        { NODE, "set",            SEC_ADMINISTRATOR,  true, nullptr,                                           "", accountSetCommandTable },
+        { NODE, "set",            SEC_ADMINISTRATOR,  true,  nullptr,                                        "", accountSetCommandTable },
         { NODE, "password",       SEC_PLAYER,         true,  &ChatHandler::HandleAccountPasswordCommand,     "", nullptr },
         { NODE, "",               SEC_PLAYER,         true,  &ChatHandler::HandleAccountCommand,             "", nullptr },
         { MSTR, nullptr,       0,                  false, nullptr,                                           "", nullptr }
@@ -1695,7 +1696,7 @@ bool ChatHandler::SetDataForCommandInTable(ChatCommand *commandTable, const char
         {
             // command have subcommands, but not '' subcommand and then any data in `command` useless for it.
             if (cmdName.empty())
-                sLog.outErrorDb("Table `command` have command '%s' that only used with some subcommand selection, it can't have help or overwritten access level, skip.", cmdName.c_str());
+                sLog.outErrorDb("Table `command` have command '%s', subcommand '%s' that only used with some subcommand selection, it can't have help or overwritten access level, skip.", fullcommand.c_str(), cmdName.c_str());
             else
                 sLog.outErrorDb("Table `command` have unexpected subcommand '%s' in command '%s', skip.", cmdName.c_str(), fullcommand.c_str());
             return false;
