@@ -119,7 +119,13 @@ namespace MaNGOS
             if (Creature* crea = u->ToCreature())
             {
                 if (crea->IsElite())
-                    xp_gain *= 2;
+                {
+                    //Elites in instances have a 2.75x XP bonus instead of the regular 2x world bonus.
+                    if (u->GetMap() && u->GetMap()->IsDungeon())
+                        xp_gain *= 2.75f;
+                    else
+                        xp_gain *= 2.0f;
+                }
                 if (isPet)
                     xp_gain *= 0.75f;
                 xp_gain *= crea->GetXPModifierDueToDamageOrigin();
