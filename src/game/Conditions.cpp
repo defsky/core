@@ -817,7 +817,8 @@ bool ConditionEntry::IsValid()
                 sLog.outErrorDb("Skill condition (entry %u, type %u) specifies non-existing skill (%u), skipped", m_entry, m_condition, m_value1);
                 return false;
             }
-            if (m_value2 < 1 || m_value2 > sWorld.GetConfigMaxSkillValue())
+            //if (m_value2 < 1 || m_value2 > sWorld.GetConfigMaxSkillValue())
+            if (m_value2 < 1 || m_value2 > 300)
             {
                 sLog.outErrorDb("Skill condition (entry %u, type %u) specifies invalid skill value (%u), skipped", m_entry, m_condition, m_value2);
                 return false;
@@ -898,7 +899,8 @@ bool ConditionEntry::IsValid()
         }
         case CONDITION_LEVEL:
         {
-            if (!m_value1 || m_value1 > sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
+            //if (!m_value1 || m_value1 > sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
+            if (!m_value1 || m_value1 > 60 || m_value1 < 1)
             {
                 sLog.outErrorDb("Level condition (entry %u, type %u)has invalid level %u, skipped", m_entry, m_condition, m_value1);
                 return false;
