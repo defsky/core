@@ -46,7 +46,7 @@ struct WaypointBehavior
     uint32 model2;
 
     bool isEmpty();
-    WaypointBehavior() {}
+    WaypointBehavior();
     WaypointBehavior(const WaypointBehavior &b);
 };
 
@@ -141,14 +141,15 @@ class WaypointManager
 
         // Toolbox for .wp add command
         /// Add a node as position pointId. If pointId == 0 then as last point
-        WaypointNode const* AddNode(uint32 entry, uint32 dbGuid, uint32& pointId, WaypointPathOrigin wpDest, float x, float y, float z);
+        WaypointNode const* AddNode(uint32 entry, uint32 dbGuid, uint32& pointId, WaypointPathOrigin wpDest, float x, float y, float z, float orientation);
 
         // Toolbox for .wp modify command
         void DeleteNode(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin);
-        void SetNodePosition(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin, float x, float y, float z);
+        void SetNodePosition(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin, float x, float y, float z, float orientation);
         void SetNodeWaittime(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin, uint32 waittime);
         void SetNodeOrientation(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin, float orientation);
         bool SetNodeScriptId(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin, uint32 scriptId);
+        void SetNodeEmote(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin, uint32 emote);
 
         // Small Helper for nice output
         static std::string GetOriginString(WaypointPathOrigin origin)

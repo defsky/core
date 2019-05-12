@@ -2675,9 +2675,12 @@ bool ChatHandler::HandleWpAddCommand(char* args)
     // All arguments parsed
     // wpOwner will get a new waypoint inserted into wpPath = GetPathFromOrigin(wpOwner, wpDestination, wpPathId) at wpPointId
 
-    float x, y, z;
-    m_session->GetPlayer()->GetPosition(x, y, z);
-    if (!sWaypointMgr.AddNode(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPointId, wpDestination, x, y, z))
+    float x, y, z, o;
+    Player * player = m_session->GetPlayer();
+    player->GetPosition(x, y, z);
+    o = player->GetOrientation();
+
+    if (!sWaypointMgr.AddNode(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPointId, wpDestination, x, y, z, o))
     {
         PSendSysMessage(LANG_WAYPOINT_NOTCREATED, wpPointId, wpOwner->GetGuidStr().c_str(), wpPathId, WaypointManager::GetOriginString(wpDestination).c_str());
         SetSentErrorMessage(true);
@@ -2697,7 +2700,7 @@ bool ChatHandler::HandleWpAddCommand(char* args)
         }
     }
 
-    PSendSysMessage(LANG_WAYPOINT_ADDED, wpPointId, wpOwner->GetGuidStr().c_str(), wpPathId, WaypointManager::GetOriginString(wpDestination).c_str());
+    PSendSysMessage(LANG_WAYPOINT_ADDED, wpPointId + 1, wpOwner->GetGuidStr().c_str(), wpPathId, WaypointManager::GetOriginString(wpDestination).c_str());
 
     return true;
 }                                                           // HandleWpAddCommand
@@ -2758,7 +2761,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
     std::string subCmd = subCmd_str;
     // Check
     // Remember: "show" must also be the name of a column!
-    if ((subCmd != "waittime") && (subCmd != "scriptid") && (subCmd != "orientation") && (subCmd != "del") && (subCmd != "move"))
+    if ((subCmd != "emote") && (subCmd != "waittime") && (subCmd != "scriptid") && (subCmd != "orientation") && (subCmd != "del") && (subCmd != "move"))
     {
         return false;
     }
@@ -2821,6 +2824,9 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
             SetSentErrorMessage(true);
             return false;
         }
+
+        // adjust index into '0' based index in waypoint node map structure
+        wpId = wpId - 1;
 
         CreatureData const* data = sObjectMgr.GetCreatureData(dbGuid);
         if (!data)
@@ -2901,13 +2907,15 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
     }
     else if (subCmd == "move")                              // Move to player position, no additional command required
     {
-        float x, y, z;
-        m_session->GetPlayer()->GetPosition(x, y, z);
+        float x, y, z, o;
+        Player *player = m_session->GetPlayer();
+        player->GetPosition(x, y, z);
+        o = player->GetOrientation();
 
         // Move visual waypoint
         targetCreature->NearTeleportTo(x, y, z, targetCreature->GetOrientation());
 
-        sWaypointMgr.SetNodePosition(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpId, wpPathId, wpSource, x, y, z);
+        sWaypointMgr.SetNodePosition(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpId, wpPathId, wpSource, x, y, z, o);
 
         PSendSysMessage(LANG_WAYPOINT_CHANGED);
         return true;
@@ -2919,6 +2927,14 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
             return false;
 
         sWaypointMgr.SetNodeWaittime(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpId, wpPathId, wpSource, waittime);
+    }
+    else if (subCmd == "emote")
+    {
+        uint32 emote;
+        if (!ExtractUInt32(&args, emote))
+            return false;
+
+        sWaypointMgr.SetNodeEmote(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpId, wpPathId, wpSource, emote);
     }
     else if (subCmd == "scriptid")
     {
@@ -3088,12 +3104,12 @@ bool ChatHandler::HandleWpShowCommand(char* args)
         WaypointPath::const_iterator point = wpPath->find(wpTarget->GetWaypointId());
         if (point == wpPath->end())
         {
-            PSendSysMessage(LANG_WAYPOINT_NOTFOUND, wpTarget->GetWaypointId(), wpOwner->GetGuidStr().c_str(), wpPathId, WaypointManager::GetOriginString(wpOrigin).c_str());
+            PSendSysMessage(LANG_WAYPOINT_NOTFOUND, wpTarget->GetWaypointId() + 1, wpOwner->GetGuidStr().c_str(), wpPathId, WaypointManager::GetOriginString(wpOrigin).c_str());
             SetSentErrorMessage(true);
             return false;
         }
 
-        PSendSysMessage(LANG_WAYPOINT_INFO_TITLE, wpTarget->GetWaypointId(), wpOwner->GetGuidStr().c_str(), wpPathId, WaypointManager::GetOriginString(wpOrigin).c_str());
+        PSendSysMessage(LANG_WAYPOINT_INFO_TITLE, wpTarget->GetWaypointId() + 1, wpOwner->GetGuidStr().c_str(), wpPathId, WaypointManager::GetOriginString(wpOrigin).c_str());
         PSendSysMessage(LANG_WAYPOINT_INFO_WAITTIME, point->second.delay);
         PSendSysMessage(LANG_WAYPOINT_INFO_ORI, point->second.orientation);
         PSendSysMessage(LANG_WAYPOINT_INFO_SCRIPTID, point->second.script_id);
