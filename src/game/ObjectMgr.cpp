@@ -7252,7 +7252,15 @@ bool ObjectMgr::IsReservedName(const std::string& name) const
 
     wstrToLower(wstr);
 
-    return m_ReservedNames.find(wstr) != m_ReservedNames.end();
+    std::set<std::wstring>::const_iterator it;
+    for (it = m_ReservedNames.begin();it != m_ReservedNames.end(); ++it)
+    {
+        if (wstr.find(*it) != std::wstring::npos)
+            return true;
+    }
+
+    //return m_ReservedNames.find(wstr) != m_ReservedNames.end();
+    return false;
 }
 
 enum LanguageType
