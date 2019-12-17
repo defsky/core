@@ -260,6 +260,14 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
         else
             plMover->ResummonPetTemporaryUnSummonedIfAny();
 
+    //process pet from tame quest
+    Unit* pTempPet = plMover->GetCharm();
+    if (pTempPet)
+    {
+        pTempPet->TeleportPositionRelocation(dest.coord_x + 2, dest.coord_y, dest.coord_z, dest.orientation);
+        pTempPet->NearLandTo(dest.coord_x + 2, dest.coord_y, dest.coord_z, dest.orientation);
+    }
+
     //lets process all delayed operations on successful teleport
     plMover->ProcessDelayedOperations();
 
