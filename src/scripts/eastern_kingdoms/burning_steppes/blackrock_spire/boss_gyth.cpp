@@ -172,26 +172,23 @@ struct boss_gythAI : public ScriptedAI
         else
             sLog.outString("Nefarian introuvable.");
 #ifdef DEBUG_ON
-        sLog.outString("[Nefarian] : %s", what);
+        sLog.outString("[Nefarian] : %d", what);
 #endif
     }
     void RendSay(int32 what)
     {
         m_creature->MonsterSay(what, LANG_UNIVERSAL, 0);
 #ifdef DEBUG_ON
-        sLog.outString("[Rend]     : %s", what);
+        sLog.outString("[Rend]     : %d", what);
 #endif
     }
     void SummonedCreatureJustDied(Creature* summ)
     {
-        // Rend - invoque par Gyth - peut mourir apres Gyth.
-        if (m_creature->isAlive())
-            m_creature->SetInCombatWithZone();
 
         // Ne doit pas etre negatif
         if (waveRemainingCount > 0)
             --waveRemainingCount;
-
+        
         if (uiWaveNum == 1 && waveRemainingCount == 2)
             NefarianSay(5665);
         else if (uiWaveNum == 3 && waveRemainingCount == 3)
@@ -240,23 +237,20 @@ struct boss_gythAI : public ScriptedAI
     // NOSTALRIUS END
     void Aggro(Unit* pWho)
     {
-        if (m_pInstance)
-        {
-            m_pInstance->SetData(TYPE_GYTH, IN_PROGRESS);
-            m_uiCombatDoorGUID = m_pInstance->GetData64(GO_GYTH_COMBAT_DOOR);
-        }
     }
+
     void AttackStart(Unit *target)
     {
-        // $target commence a nous attaquer.
+        // start stadium event.
         if (!m_bAggro)
         {
-            m_creature->Attack(target, false);
-            m_creature->AddThreat(target);
-            m_creature->SetInCombatWith(target);
-            target->SetInCombatWith(m_creature);
+            if (m_pInstance)
+            {
+                m_pInstance->SetData(TYPE_GYTH, IN_PROGRESS);
+                m_uiCombatDoorGUID = m_pInstance->GetData64(GO_GYTH_COMBAT_DOOR);
+            }
         }
-        // Sinon, go attaquer.
+        // attack target
         else if (m_creature->Attack(target, true))
         {
             m_creature->AddThreat(target);
@@ -272,8 +266,8 @@ struct boss_gythAI : public ScriptedAI
 #ifdef DEBUG_ON
         sLog.outString("Boss GYTH JustDied");
 #endif
-        if (m_pInstance)
-            m_pInstance->SetData(TYPE_GYTH, DONE);
+        // if (m_pInstance)
+        //     m_pInstance->SetData(TYPE_GYTH, DONE);
     }
 
     void EnterEvadeMode()
@@ -316,8 +310,12 @@ struct boss_gythAI : public ScriptedAI
         fX = std::min(m_creature->GetPositionX(), fX);      // Halfcircle - suits better the rectangular form
         if (Creature* pSummoned = m_creature->SummonCreature(uiCreatureId, SPAWN_X + irand(-10, 10), SPAWN_Y + irand(-10, 10), SPAWN_Z, SPAWN_O, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 240000))
         {
-            if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+            //if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
+            //    pSummoned->AI()->AttackStart(pTarget);
+            pSummoned->SetInCombatWithZone();
+            if (Unit* pTarget = pSummoned->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 pSummoned->AI()->AttackStart(pTarget);
+
             m_lSummonedGuids.push_back(pSummoned->GetGUID());
         }
         ++waveRemainingCount;
@@ -325,14 +323,37 @@ struct boss_gythAI : public ScriptedAI
 
     void UpdateAI(const uint32 uiDiff)
     {
+        if (m_pInstance)
+        {
+            if (m_pInstance->GetData(TYPE_GYTH) != IN_PROGRESS)
+            {
+                return;
+            }
+            else
+            {
+                //no alive player except GM
+                if (nullptr == m_pInstance->GetPlayerInMap(true, false))
+                {
+                    EnterEvadeMode();
+                    return;
+                }
+            }
+        }
+        else
+            return;
+        
         if (!m_bInitialized)
         {
             Initialize();
             m_bInitialized = true;
         }
+
         //Return since we have no target
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
+        //if (m_bAggro)
+        //{
+        //    if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        //        return;
+        //}
 
         if (!m_bRootSelf)
         {
@@ -363,6 +384,10 @@ struct boss_gythAI : public ScriptedAI
                 
                 if (m_pInstance)
                     m_pInstance->DoUseDoorOrButton(m_uiCombatDoorGUID);
+                
+                m_creature->SetInCombatWithZone();
+                if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_NEAREST, 0))
+                    AttackStart(pTarget);
             }
             else
                 uiAggroTimer -= uiDiff;

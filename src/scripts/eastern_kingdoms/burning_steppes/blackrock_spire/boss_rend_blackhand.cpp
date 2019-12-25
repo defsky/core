@@ -22,7 +22,7 @@ SDCategory: Blackrock Spire
 EndScriptData */
 
 #include "scriptPCH.h"
-
+#include "blackrock_spire.h"
 /*
 In DB : change creature_template et creature_equip_template
 */
@@ -39,9 +39,11 @@ struct boss_rend_blackhandAI : public ScriptedAI
 {
     boss_rend_blackhandAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
+        m_pInstance = (instance_blackrock_spire*) pCreature->GetInstanceData();
         Reset();
     }
 
+    instance_blackrock_spire* m_pInstance;
     uint32 m_uiMortalStrikeTimer;
     uint32 m_uiCleaveTimer;
     uint32 m_uiFrenzyTimer;
@@ -59,11 +61,34 @@ struct boss_rend_blackhandAI : public ScriptedAI
         m_uiWhirlWindTimer          = 0;
     }
 
+    void JustDied(Unit* pKiller)
+    {
+        if (m_pInstance)
+            m_pInstance->SetData(TYPE_GYTH, DONE);
+    }
+
     void UpdateAI(const uint32 uiDiff)
     {
+        if (m_pInstance && m_pInstance->GetData(TYPE_GYTH) != IN_PROGRESS)
+            return;
+
         // Return since we have no target
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
+        {
+            if (Creature* pGyth = m_pInstance->instance->GetCreature(m_pInstance->GetData64(NPC_GYTH)))
+            {
+                //reset blackhand
+                m_creature->SetDeathState(JUST_DIED);
+                m_creature->Respawn();
+                Reset();
+
+                //reset gyth
+                pGyth->AI()->JustReachedHome();
+                pGyth->Respawn();
+            }
+
             return;
+        }
 
         // WhirlWind Check
         if (m_uiCloseCombatCheckTimer < uiDiff)
