@@ -943,9 +943,7 @@ uint16 TerrainInfo::GetAreaFlag(float x, float y, float z, bool* isOutdoors) con
 
     uint16 areaflag;
     if (atEntry)
-    {
         areaflag = atEntry->ExploreFlag;
-    }
     else
     {
         if (GridMap* gmap = const_cast<TerrainInfo*>(this)->GetGrid(x, y))
@@ -962,10 +960,6 @@ uint16 TerrainInfo::GetAreaFlag(float x, float y, float z, bool* isOutdoors) con
         else
             *isOutdoors = true;
     }
-    // hack to fix winterfall village ,the cave of High Chief Winterfall(10738), area zone bug
-    if (areaflag == 999 && m_mapId == 1)
-        areaflag = 830;
-
     return areaflag;
 }
 
