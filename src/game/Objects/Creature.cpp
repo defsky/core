@@ -814,10 +814,32 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                 try
                 {
                     // Reset after 24 secs
-                    if (!GetMap()->IsDungeon() && m_TargetNotReachableTimer > 24000)
-                        AI()->EnterEvadeMode();
-                    else if (!IsEvadeBecauseTargetNotReachable())
-                        AI()->UpdateAI(diff);   // AI not react good at real update delays (while freeze in non-active part of map)
+                    if (!GetMap()->IsDungeon())
+                    {
+                        if (m_TargetNotReachableTimer > 24000)
+                            AI()->EnterEvadeMode();
+                        else
+                            AI()->UpdateAI(diff);
+                    }
+                    else
+                    {
+                        if (IsEvadeBecauseTargetNotReachable())
+                        {
+                            /*
+                            if (Unit* pUnit = SelectNearestTargetInAttackDistance(100.0))
+                            {
+                                if (pUnit->IsPlayer())
+                                    OnEnterCombat(pUnit, false);
+                            }
+                            else
+                            */
+                            //ToUnit()->SelectHostileTarget();
+                            AI()->EnterEvadeMode();
+
+                        }
+                        else
+                            AI()->UpdateAI(diff);   // AI not react good at real update delays (while freeze in non-active part of map)
+                    }
                 }
                 catch (std::runtime_error& e)
                 {
