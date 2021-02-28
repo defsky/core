@@ -1087,6 +1087,10 @@ enum
     SPELL_BRUISING_BLOW =   22572,
     SPELL_PUMMEL        =   15615,
     SPELL_UPPERCUT      =   18072,
+
+    GORDOK_BRUTE_AGGRO_TEXT1 = 808,     // The Great One will smash you!
+    GORDOK_BRUTE_AGGRO_TEXT2 = 1926,    // Me smash! You die!
+    GORDOK_BRUTE_AGGRO_TEXT3 = 1927,    // Raaar!!! Me smash %s!
 };
 
 /******************/
@@ -1122,15 +1126,13 @@ struct GordokBruteAI : public ScriptedAI
         switch (yellChance)
         {
             case 0:
-                m_creature->MonsterSay("Me smash! You die!");
+                m_creature->PMonsterSay(GORDOK_BRUTE_AGGRO_TEXT2);
                 break;
             case 1:
-                m_creature->MonsterSay("The Great One will smash you!");
+                m_creature->PMonsterSay(GORDOK_BRUTE_AGGRO_TEXT1);
                 break;
             case 2:
-                char eMessage[100];
-                sprintf(eMessage, "Raaar!!! Me smash %s!",pWho->GetName());
-                m_creature->MonsterSay(eMessage);
+                m_creature->PMonsterSay(GORDOK_BRUTE_AGGRO_TEXT3, pWho->GetName());
                 break;
             default:
                 break;
